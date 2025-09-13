@@ -1,0 +1,58 @@
+@import './CropManagementSystem.css';
+
+.status-delayed {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.route-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.conditions-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.logistics-overview {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.logistics-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.logistics-label {
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 2px;
+}
+
+.logistics-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+
+@media (max-width: 768px) {
+
+    .route-info,
+    .conditions-info {
+        font-size: 12px;
+    }
+
+    .logistics-item {
+        padding: 8px;
+    }
+}
