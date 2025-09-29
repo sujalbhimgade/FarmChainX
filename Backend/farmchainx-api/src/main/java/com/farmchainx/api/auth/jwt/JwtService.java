@@ -11,18 +11,18 @@ import java.util.*;
 
 @Service
 public class JwtService {
-	@Value("${app.jwt.secret:dev-secret-32-characters-minimum-please-change}")
-	private String secret;
 
-	@Value("${app.jwt.issuer:farmchainx}")
-	private String issuer;
+  @Value("${app.jwt.secret:dev-secret-32-characters-minimum-please-change}")
+  private String secret;
 
-	@Value("${app.jwt.access-exp-min:60}")
-	private long accessExpMin;
+  @Value("${app.jwt.issuer:farmchainx}")
+  private String issuer;
 
-	@Value("${app.jwt.refresh-exp-days:7}")
-	private long refreshExpDays;
+  @Value("${app.jwt.access-exp-min:60}")
+  private long accessExpMin;
 
+  @Value("${app.jwt.refresh-exp-days:7}")
+  private long refreshExpDays;
 
   private Key key;
 
@@ -41,7 +41,7 @@ public class JwtService {
     return Jwts.builder()
       .setSubject(subject)
       .setIssuer(issuer)
-      .claim("roles", roles)
+      .claim("roles", roles)            // array claim, e.g. ["FARMER","ADMIN"]
       .setIssuedAt(Date.from(now))
       .setExpiration(Date.from(now.plusSeconds(accessExpMin * 60)))
       .signWith(key, SignatureAlgorithm.HS256)
@@ -59,20 +59,39 @@ public class JwtService {
       .compact();
   }
 
+  // Existing validity helper
   public boolean isValid(String token) {
     try { parseAllClaims(token); return true; }
     catch (JwtException | IllegalArgumentException e) { return false; }
+  }
+
+  // Alias used by some filters/services
+  public boolean validateToken(String token) {
+    return isValid(token);
+  }
+
+  // Alias used by some filters/controllers
+  public String getUsername(String token) {
+    return getSubject(token);
   }
 
   public String getSubject(String token) {
     return parseAllClaims(token).getBody().getSubject();
   }
 
-	/* @SuppressWarnings("unchecked") */
+  @SuppressWarnings("unchecked")
   public List<String> getRoles(String token) {
     var body = parseAllClaims(token).getBody();
     Object roles = body.get("roles");
-    if (roles instanceof List<?> list) return list.stream().map(Object::toString).toList();
+    if (roles instanceof List<?> list) {
+      List<String> out = new ArrayList<>(list.size());
+      for (Object o : list) out.add(String.valueOf(o));
+      return out;
+    }
+    // Gracefully handle single-string or different serializer edge cases
+    if (roles instanceof String s && !s.isBlank()) {
+      return List.of(s);
+    }
     return List.of();
   }
 

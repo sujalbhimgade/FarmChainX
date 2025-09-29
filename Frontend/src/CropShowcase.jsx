@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import './CropShowcase.css';
+import apiService from './conc/api';
 
 const CropShowcase = () => {
     const { cropId } = useParams();
@@ -8,33 +9,57 @@ const CropShowcase = () => {
     const [cropData, setCropData] = useState(null);
     const [activeTab, setActiveTab] = useState('overview');
     const [loading, setLoading] = useState(true);
-
+    
     useEffect(() => {
-        const id = cropId || searchParams.get('id') || searchParams.get('crop_id');
-        if (id) {
-            fetchCropData(id);
+        const publicId =
+            cropId ||
+            searchParams.get('publicId') ||
+            searchParams.get('id') ||
+            searchParams.get('crop_id');
+        if (publicId) {
+            loadPublic(publicId);
         } else {
             loadDefaultData();
         }
     }, [cropId, searchParams]);
 
-    const fetchCropData = async (id) => {
+    const loadPublic = async (publicId) => {
         try {
-            const response = await fetch(`/api/crops/${id}`);
-            if (response.ok) {
-                const data = await response.json();
-                setCropData(data);
-            } else {
-                loadDefaultData();
-            }
-        } catch (error) {
-            console.error('Error fetching crop data:', error);
+            const dto = await apiService.getPublicCrop(publicId);
+            // Map backend DTO -> component data model
+            const mapped = {
+                name: dto.title || '—',
+                variety: dto.type || '—',
+                farmer: dto.farmName || '—',
+                image: dto.image_url || '../src/assets/wheat.jpg',
+                planting_date: dto.plantedDate || '—',
+                harvest_date: dto.harvestDate || '—',
+                growth_stage: dto.currentStage || '—',
+                certification: dto.certification || '—',
+                quality_score: dto.qualityScore ?? 0,
+                temperature: dto.temperature || '—',
+                humidity: dto.humidity || '—',
+                location: dto.contactAddress || '—',
+                phone: dto.contactPhone || '—',
+                email: dto.contactEmail || '—',
+                batch_id: dto.batchCode || '—',
+                supply_chain: {
+                    farmer: { name: dto.farmName || '—', date: dto.plantedDate || '—', location: dto.contactAddress || '—', status: (dto.progress?.farmer ? 'completed' : 'pending') },
+                    distributor: { name: '—', date: '—', location: dto.currentHolder || '—', status: (dto.progress?.distributor ? 'completed' : 'pending') },
+                    retailer: { name: '—', date: '—', location: '—', status: (dto.progress?.retailer ? 'completed' : 'pending') },
+                    consumer: { date: '—', status: (dto.progress?.consumer ? 'completed' : 'pending') },
+                },
+                journey: dto.journey || [],
+            };
+            setCropData(mapped);
+        } catch (e) {
+            console.error('Error loading public crop:', e);
             loadDefaultData();
         } finally {
             setLoading(false);
         }
     };
-
+   
     const loadDefaultData = () => {
         const defaultData = {
             name: "Organic Tomatoes",
@@ -51,7 +76,7 @@ const CropShowcase = () => {
             location: "Green Valley, Karnataka, India",
             phone: "+91 98765 43210",
             email: "info@greenvalleyfarm.com",
-            batch_id: "TOM-GVF-072125", 
+            batch_id: "TOM-GVF-072125",
             supply_chain: {
                 farmer: {
                     name: "Green Valley Organic Farms",
@@ -80,7 +105,6 @@ const CropShowcase = () => {
         setCropData(defaultData);
         setLoading(false);
     };
-
 
     const handleContactClick = (type, value) => {
         if (type === 'phone') {
@@ -190,20 +214,20 @@ const CropShowcase = () => {
                             <i className="fas fa-info-circle"></i>
                             Overview
                         </button>
-                        <button
+                        {/* <button
                             className={activeTab === 'quality' ? 'active' : ''}
                             onClick={() => setActiveTab('quality')}
                         >
                             <i className="fas fa-award"></i>
                             Quality
-                        </button>
-                        <button
+                        </button> */}
+                        {/* <button
                             className={activeTab === 'environment' ? 'active' : ''}
                             onClick={() => setActiveTab('environment')}
                         >
                             <i className="fas fa-globe"></i>
                             Environment
-                        </button>
+                        </button> */}
                     </div>
 
                     <div className="tab-content">
@@ -267,7 +291,7 @@ const CropShowcase = () => {
                             </div>
                         )}
 
-                        {activeTab === 'quality' && (
+                        {/* {activeTab === 'quality' && (
                             <div className="quality-content">
                                 <div className="quality-metrics">
                                     <div className="metric">
@@ -333,7 +357,7 @@ const CropShowcase = () => {
                                     </div>
                                 </div>
                             </div>
-                        )}
+                        )} */}
                     </div>
                 </div>
 

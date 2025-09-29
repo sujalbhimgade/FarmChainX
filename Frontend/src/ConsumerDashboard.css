@@ -1,7 +1,5 @@
-/* Import existing CropManagementSystem.css styles and add consumer-specific styles */
 @import './CropManagementSystem.css';
 
-/* Consumer-specific styling */
 .products-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));

@@ -1,11 +1,53 @@
-/* Import existing CropManagementSystem.css styles and add admin-specific styles */
+/* Import base CropManagementSystem styles */
 @import './CropManagementSystem.css';
 
-/* Admin-specific styling overrides and additions */
-.sidebar .logo-text {
+/* CSS Variables for FarmchainX Theme */
+:root {
+  --primary-gradient: linear-gradient(135deg, #37d3ab 0%, #23a6d5 100%);
+  --primary-start: #37d3ab;
+  --primary-end: #23a6d5;
+  --primary-hover: #2dd4aa;
+  --primary-light: #e6f7ff;
+  --primary-bg: #f0fdfa;
+}
+
+/* Admin Dashboard Specific Overrides */
+.admin-dashboard {
+  display: flex;
+  height: 100vh;
+  background-color: #f8fafc;
+  overflow: hidden;
+}
+
+/* Enhanced sidebar for admin */
+.admin-dashboard .sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease;
+  position: relative;
+  z-index: 100;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.04);
+}
+
+.admin-dashboard .sidebar.collapsed {
+  width: 70px;
+  min-width: 70px;
+  max-width: 70px;
+  overflow-x: hidden;
+}
+
+/* Enhanced logo for admin */
+.admin-dashboard .sidebar .logo-text {
   font-weight: 700;
-  font-size: 16px;
-  color: #1e293b;
+  font-size: 20px;
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  transition: opacity 0.3s ease;
 }
 
 /* System status indicators */
@@ -20,51 +62,426 @@
   align-items: center;
   gap: 8px;
   font-size: 14px;
+  padding: 8px 0;
 }
 
 .status-ok {
-  color: #10b981;
+  color: #10b981 !important;
 }
 
 .status-pending {
-  color: #f59e0b;
+  color: #f59e0b !important;
 }
 
 .status-error {
-  color: #ef4444;
+  color: #ef4444 !important;
 }
 
-/* Admin stats grid modifications */
-.stats-grid {
+/* Enhanced stats grid for admin */
+.admin-dashboard .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  margin-bottom: 32px;
+  gap: 16px;
+  margin-bottom: 20px;
   width: 100%;
 }
 
-/* Enhanced action buttons for admin */
-.action-buttons .btn-small {
-  min-width: 32px;
-  height: 32px;
-  padding: 6px;
+/* Enhanced action buttons for admin tables */
+.admin-dashboard .action-buttons .btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px !important;
+  width: 30px !important;
+  height: 30px !important;
+  padding: 5px !important;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  font-size: 0;
 }
 
-/* Admin-specific responsive adjustments */
+/* Remove black icons/pseudo-elements from buttons */
+.admin-dashboard .action-buttons .btn:not(:hover)::before,
+.admin-dashboard .action-buttons .btn:not(:hover)::after {
+  display: none !important;
+  content: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+.admin-dashboard .action-buttons .btn span {
+  display: none !important;
+}
+
+.admin-dashboard .action-buttons .btn svg {
+  width: 14px !important;
+  height: 14px !important;
+  flex-shrink: 0;
+}
+
+/* Enhanced button styles for admin actions */
+.admin-dashboard .btn-view {
+  background: #f0f9ff !important;
+  border: 1px solid #0ea5e9 !important;
+}
+
+.admin-dashboard .btn-view svg {
+  color: #0284c7 !important;
+}
+
+.admin-dashboard .btn-view:hover {
+  background: #0284c7 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+}
+
+.admin-dashboard .btn-view:hover svg {
+  color: white !important;
+}
+
+.admin-dashboard .btn-edit {
+  background: #fef3c7 !important;
+  border: 1px solid #fbbf24 !important;
+}
+
+.admin-dashboard .btn-edit svg {
+  color: #92400e !important;
+}
+
+.admin-dashboard .btn-edit:hover {
+  background: #fbbf24 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+}
+
+.admin-dashboard .btn-edit:hover svg {
+  color: white !important;
+}
+
+.admin-dashboard .btn-qr {
+  background: #ecfdf5 !important;
+  border: 1px solid #10b981 !important;
+}
+
+.admin-dashboard .btn-qr svg {
+  color: #059669 !important;
+}
+
+.admin-dashboard .btn-qr:hover {
+  background: #059669 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+}
+
+.admin-dashboard .btn-qr:hover svg {
+  color: white !important;
+}
+
+.admin-dashboard .btn-delete {
+  background: #fef2f2 !important;
+  border: 1px solid #fca5a5 !important;
+}
+
+.admin-dashboard .btn-delete svg {
+  color: #dc2626 !important;
+}
+
+.admin-dashboard .btn-delete:hover {
+  background: #dc2626 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+.admin-dashboard .btn-delete:hover svg {
+  color: white !important;
+}
+
+/* Beautiful tooltip system for admin */
+.admin-dashboard .action-buttons .btn:hover::before {
+  content: attr(data-tooltip) !important;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 1;
+  visibility: visible;
+  z-index: 1000;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  display: block !important;
+}
+
+.admin-dashboard .action-buttons .btn:hover::after {
+  content: '' !important;
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid #1f2937;
+  opacity: 1;
+  visibility: visible;
+  z-index: 1000;
+  display: block !important;
+}
+
+/* Enhanced status badges for admin */
+.admin-dashboard .status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  width: 95%;
+  max-width: 100px;
+  text-align: center;
+  margin: 0 auto;
+}
+
+.admin-dashboard .status-in-stock {
+  background: var(--primary-bg);
+  color: var(--primary-start);
+  border: 1px solid var(--primary-start);
+}
+
+.admin-dashboard .status-pending {
+  background: #fefce8;
+  color: #ca8a04;
+  border: 1px solid #fde047;
+}
+
+.admin-dashboard .status-out-of-stock {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+
+.admin-dashboard .status-growing {
+  background: var(--primary-bg);
+  color: var(--primary-start);
+  border: 1px solid var(--primary-start);
+}
+
+.admin-dashboard .status-planted {
+  background: #f0f9ff;
+  color: #0369a1;
+  border: 1px solid #7dd3fc;
+}
+
+.admin-dashboard .status-flowering {
+  background: #fdf4ff;
+  color: #a21caf;
+  border: 1px solid #f0abfc;
+}
+
+.admin-dashboard .status-harvested {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #6ee7b7;
+}
+
+.admin-dashboard .status-general {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+}
+
+.admin-dashboard .status-security {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+
+.admin-dashboard .status-financial {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #6ee7b7;
+}
+
+.admin-dashboard .status-system {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #93c5fd;
+}
+
+.admin-dashboard .status-performance {
+  background: #fefce8;
+  color: #ca8a04;
+  border: 1px solid #fde047;
+}
+
+/* Enhanced activity list for admin */
+.admin-dashboard .activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-dashboard .activity-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f8fafc;
+  transition: background 0.2s ease;
+}
+
+.admin-dashboard .activity-item:hover {
+  background: #f1f5f9;
+}
+
+.admin-dashboard .activity-item svg {
+  color: var(--primary-start);
+  flex-shrink: 0;
+}
+
+.admin-dashboard .activity-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-dashboard .activity-info>div:first-child {
+  font-weight: 500;
+  color: #1e293b;
+  font-size: 14px;
+}
+
+.admin-dashboard .activity-info>div:last-child {
+  font-size: 13px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-dashboard .activity-time {
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+/* Enhanced view details modal */
+.admin-dashboard .view-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-dashboard .detail-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 14px;
+}
+
+.admin-dashboard .detail-row:last-child {
+  border-bottom: none;
+}
+
+.admin-dashboard .detail-row strong {
+  min-width: 150px;
+  color: #374151;
+  font-weight: 600;
+}
+
+/* Enhanced analytics placeholder */
+.admin-dashboard .analytics-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: #64748b;
+  min-height: 400px;
+}
+
+.admin-dashboard .analytics-placeholder svg {
+  color: var(--primary-start);
+  margin-bottom: 16px;
+}
+
+.admin-dashboard .analytics-placeholder p {
+  font-size: 20px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 8px 0;
+}
+
+.admin-dashboard .analytics-placeholder span {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* Enhanced responsive design for admin */
+@media (max-width: 1200px) {
+  .admin-dashboard .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+}
+
 @media (max-width: 768px) {
-  .stats-grid {
+  .admin-dashboard .stats-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
   }
-  
-  .action-buttons {
-    flex-direction: row;
+
+  .admin-dashboard .action-buttons {
     gap: 4px;
+    min-width: 90px;
+  }
+
+  .admin-dashboard .action-buttons .btn {
+    min-width: 26px !important;
+    width: 26px !important;
+    height: 26px !important;
+    padding: 4px !important;
+  }
+
+  .admin-dashboard .action-buttons .btn svg {
+    width: 12px !important;
+    height: 12px !important;
   }
 }
 
 @media (max-width: 480px) {
-  .stats-grid {
+  .admin-dashboard .stats-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .admin-dashboard .action-buttons .btn {
+    min-width: 24px !important;
+    width: 24px !important;
+    height: 24px !important;
+    padding: 3px !important;
+  }
+
+  .admin-dashboard .action-buttons .btn svg {
+    width: 10px !important;
+    height: 10px !important;
   }
 }

@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import {
     ArrowRight, Play, Check, Star, Users, Shield, Leaf,
     Truck, BarChart3, MapPin, Phone, Mail, Menu, X,
-    ChevronDown, Package, Zap, Globe
+    ChevronDown, Package, Zap, Globe,
+    BookOpen
 } from 'lucide-react';
 import './LandingPage.css';
+import farmchainxLogo from './assets/farmchainxLogo.png';
 
 const LandingPage = () => {
     const navigate = useNavigate();
@@ -14,7 +16,6 @@ const LandingPage = () => {
     const [isVisible, setIsVisible] = useState({});
 
     useEffect(() => {
-        
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
@@ -126,7 +127,9 @@ const LandingPage = () => {
             <nav className="navbar">
                 <div className="nav-container">
                     <div className="nav-brand">
-                        <Leaf className="brand-icon" />
+                        <div className="logo-container">
+                            <img src={farmchainxLogo} alt="FarmChainX Logo" />
+                        </div>
                         <span className="brand-text">FarmChainX</span>
                     </div>
 
@@ -164,9 +167,7 @@ const LandingPage = () => {
                         </h1>
 
                         <p className="hero-description">
-                            Connect your entire supply chain with blockchain-powered traceability.
-                            Build trust, ensure quality, and get better prices for your crops with
-                            complete transparency from seed to shelf.
+                            Connect your entire supply chain with AI‑driven visibility. Build trust, ensure quality, and secure better prices with end‑to‑end transparency from seed to shelf through real‑time data and analytics.
                         </p>
 
                         <div className="hero-actions">
@@ -177,8 +178,8 @@ const LandingPage = () => {
                             </button>
 
                             <button className="btn btn-outline btn-large">
-                                <Play size={20} />
-                                Watch Demo
+                                <BookOpen size={20} />
+                                Learn More
                             </button>
                         </div>
 
@@ -191,14 +192,6 @@ const LandingPage = () => {
                             ))}
                         </div>
                     </div>
-
-            
-
-                           
-
-                           
-                        
-                    
                 </div>
             </section>
 
@@ -369,7 +362,9 @@ const LandingPage = () => {
                     <div className="footer-content">
                         <div className="footer-section">
                             <div className="footer-brand">
-                                <Leaf className="brand-icon" />
+                                <div className="footer-logo-container">
+                                    <img src={farmchainxLogo} alt="FarmChainX Logo" />
+                                </div>
                                 <span className="brand-text">FarmChainX</span>
                             </div>
                             <p>Transforming agriculture with transparent supply chain solutions. Building trust from farm to fork.</p>

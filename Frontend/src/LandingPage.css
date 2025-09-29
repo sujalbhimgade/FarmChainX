@@ -11,7 +11,6 @@
     overflow-x: hidden;
 }
 
-/* Container */
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -65,6 +64,25 @@
 
 .brand-text {
     color: #1f2937;
+}
+
+/* Logo Styles for Landing Page */
+.logo-container {
+    width: 42px;
+    height: 42px;
+    background: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+}
+
+
+.logo-container img {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
 }
 
 .nav-menu {
@@ -614,6 +632,30 @@
 
 .footer-brand .brand-text {
     color: white;
+}
+
+/* Footer Logo Styles */
+.footer-logo-container {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.footer-logo-container:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+}
+
+.footer-logo-container img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
 }
 
 .footer-section p {

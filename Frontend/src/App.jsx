@@ -17,8 +17,7 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/AuthPage" element={<AuthPage />} />
       <Route path="/Farmer" element={<CropManagementSystem />} />
-      <Route path="/CropShowcase" element={<CropShowcase />} />
-      <Route path="/Farmer" element={<CropManagementSystem />} />
+      <Route path="/showcase/:cropId" element={<CropShowcase />} />
       <Route path="/admin" element={<AdminDashboard/>} />
       <Route path="/distributor" element={<DistributorDashboard/>} />
       <Route path="/Retailer" element={<RetailerDashboard />} />

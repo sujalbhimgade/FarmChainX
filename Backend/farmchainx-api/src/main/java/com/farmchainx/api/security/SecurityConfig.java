@@ -38,6 +38,13 @@ public class SecurityConfig {
   public SecurityFilterChain filterChain(HttpSecurity http,
                                          JwtAuthFilter jwtFilter,
                                          AuthenticationProvider authenticationProvider) throws Exception {
+	// in SecurityConfig
+	  http.authorizeHttpRequests(auth -> auth
+	    .requestMatchers("/api/public/**", "/showcase/**").permitAll()
+	    // keep existing matcher rules below
+	  );
+
+	  
     http
       .csrf(csrf -> csrf.disable())
       .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -46,6 +53,9 @@ public class SecurityConfig {
         .requestMatchers(HttpMethod.GET, "/api/ping").permitAll()
         .requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/signin", "/api/auth/refresh").permitAll()
         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
+        .requestMatchers(HttpMethod.GET, "/api/crops/*").permitAll() 
+        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/public/**").permitAll()
+        .requestMatchers("/api/trace/**").permitAll()
         .requestMatchers("/api/admin/**").hasRole("ADMIN")
         .requestMatchers("/api/farmer/**").hasAnyRole("FARMER","ADMIN")
         .requestMatchers("/api/distributor/**").hasAnyRole("DISTRIBUTOR","ADMIN")
@@ -70,7 +80,7 @@ public class SecurityConfig {
     var cfg = new CorsConfiguration();
     // Support comma-separated list in property
     cfg.setAllowedOrigins(List.of(allowedOrigins.split("\\s*,\\s*")));
-    cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
+    cfg.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
     cfg.setAllowedHeaders(List.of("Authorization","Content-Type"));
     cfg.setExposedHeaders(List.of("Authorization"));
     cfg.setAllowCredentials(true);
