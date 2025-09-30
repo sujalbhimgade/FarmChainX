@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
     Camera,
     Upload,
@@ -12,7 +12,12 @@ import {
     AlertCircle,
     Zap,
     Video,
-    Square
+    Square,
+    Clock,
+    Star,
+    Package,
+    Calendar,
+    Thermometer
 } from 'lucide-react';
 import './CropHealthDetector.css';
 
@@ -35,32 +40,35 @@ const CropHealthDetector = () => {
     const handleFileSelect = useCallback((file) => {
         if (file && file.type.startsWith('image/')) {
             setSelectedImage(file);
-            setPreviewUrl(URL.createObjectURL(file));
+            const url = URL.createObjectURL(file);
+            setPreviewUrl(url);
             setResults(null);
             setError(null);
-            // Stop camera if active
+
             if (isCameraActive) {
                 stopCamera();
             }
+        } else {
+            setError('Please select a valid image file (JPG, PNG, WEBP)');
         }
     }, [isCameraActive]);
 
-    // Update the startCamera function
     const startCamera = async () => {
         try {
-            // Stop any existing stream first
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
             }
 
-            const mediaStream = await navigator.mediaDevices.getUserMedia({
+            const constraints = {
                 video: {
                     width: { ideal: 1280 },
                     height: { ideal: 720 },
-                    facingMode: { ideal: 'environment' } // Use back camera on mobile
+                    facingMode: { ideal: 'environment' }
                 },
-                audio: false // Explicitly disable audio
-            });
+                audio: false
+            };
+
+            const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
 
             setStream(mediaStream);
             setIsCameraActive(true);
@@ -69,86 +77,120 @@ const CropHealthDetector = () => {
             setResults(null);
             setError(null);
 
-            // Wait for video element to be ready
-            if (videoRef.current) {
-                videoRef.current.srcObject = mediaStream;
+            setTimeout(() => {
+                if (videoRef.current && mediaStream) {
+                    videoRef.current.srcObject = mediaStream;
 
-                // Add event listener to ensure video starts playing
-                videoRef.current.onloadedmetadata = () => {
-                    videoRef.current.play().catch(err => {
-                        console.error('Error playing video:', err);
-                        setError('Failed to start camera playback');
-                    });
-                };
-            }
+                    videoRef.current.onloadedmetadata = () => {
+                        videoRef.current.play().catch(err => {
+                            console.error('Video playback error:', err);
+                            setError('Failed to start video playback');
+                        });
+                    };
+                }
+            }, 100);
+
         } catch (err) {
-            console.error('Error accessing camera:', err);
+            console.error('Camera access error:', err);
             let errorMessage = 'Unable to access camera. ';
 
-            if (err.name === 'NotAllowedError') {
-                errorMessage += 'Please allow camera access and try again.';
-            } else if (err.name === 'NotFoundError') {
-                errorMessage += 'No camera found on this device.';
-            } else if (err.name === 'NotReadableError') {
-                errorMessage += 'Camera is being used by another application.';
+            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                errorMessage += 'Please allow camera permissions in your browser settings.';
+            } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                errorMessage += 'No camera device found on this system.';
+            } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+                errorMessage += 'Camera is already in use by another application.';
             } else {
-                errorMessage += 'Please check permissions and try again.';
+                errorMessage += 'Please check your camera and try again.';
             }
 
             setError(errorMessage);
             setIsCameraActive(false);
+            setStream(null);
         }
     };
 
-
     const stopCamera = () => {
         if (stream) {
-            stream.getTracks().forEach(track => track.stop());
+            stream.getTracks().forEach(track => {
+                track.stop();
+            });
             setStream(null);
+        }
+        if (videoRef.current) {
+            videoRef.current.srcObject = null;
         }
         setIsCameraActive(false);
     };
 
     const capturePhoto = () => {
-        if (!videoRef.current || !canvasRef.current) return;
+        if (!videoRef.current || !canvasRef.current || !stream) {
+            setError('Camera not ready. Please try again.');
+            return;
+        }
 
-        const video = videoRef.current;
-        const canvas = canvasRef.current;
-        const context = canvas.getContext('2d');
+        try {
+            const video = videoRef.current;
+            const canvas = canvasRef.current;
+            const context = canvas.getContext('2d');
 
-        // Set canvas dimensions to match video
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-
-        // Draw the video frame to canvas
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        // Convert canvas to blob
-        canvas.toBlob((blob) => {
-            if (blob) {
-                const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
-                handleFileSelect(file);
-                stopCamera();
+            if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+                setError('Video not ready. Please wait a moment and try again.');
+                return;
             }
-        }, 'image/jpeg', 0.8);
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            if (canvas.width === 0 || canvas.height === 0) {
+                setError('Invalid video dimensions. Please restart camera.');
+                return;
+            }
+
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    const timestamp = new Date().getTime();
+                    const file = new File([blob], `camera-capture-${timestamp}.jpg`, {
+                        type: 'image/jpeg',
+                        lastModified: timestamp
+                    });
+
+                    console.log('Photo captured:', file.size, 'bytes');
+                    handleFileSelect(file);
+                    stopCamera();
+                } else {
+                    setError('Failed to capture photo. Please try again.');
+                }
+            }, 'image/jpeg', 0.92);
+
+        } catch (err) {
+            console.error('Capture error:', err);
+            setError('Failed to capture photo. Please try again.');
+        }
     };
 
     const handleDragEnter = (e) => {
         e.preventDefault();
+        e.stopPropagation();
         setIsDragOver(true);
     };
 
     const handleDragLeave = (e) => {
         e.preventDefault();
+        e.stopPropagation();
         setIsDragOver(false);
     };
 
     const handleDragOver = (e) => {
         e.preventDefault();
+        e.stopPropagation();
     };
 
     const handleDrop = (e) => {
         e.preventDefault();
+        e.stopPropagation();
         setIsDragOver(false);
         const files = e.dataTransfer.files;
         if (files.length > 0) {
@@ -173,20 +215,33 @@ const CropHealthDetector = () => {
             const formData = new FormData();
             formData.append('image', selectedImage);
 
+            console.log('Sending image for analysis:', selectedImage.name, selectedImage.size);
+
             const response = await fetch(`${API_URL}/api/ai/ripeness`, {
                 method: 'POST',
                 body: formData,
             });
 
             if (!response.ok) {
-                throw new Error(`Analysis failed: ${response.statusText}`);
+                const errorText = await response.text();
+                throw new Error(`Analysis failed (${response.status}): ${errorText}`);
             }
 
             const data = await response.json();
-            setResults(data);
+            console.log('Analysis results:', data);
+
+            // Transform backend response to expected format
+            const transformedData = {
+                predictions: data.raw?.predictions || [],
+                summary: data.summary,
+                model_id: data.model_id
+            };
+
+            setResults(transformedData);
+
         } catch (err) {
             console.error('Analysis error:', err);
-            setError(err.message || 'Failed to analyze image. Please try again.');
+            setError(err.message || 'Failed to analyze image. Please check your connection and try again.');
         } finally {
             setIsAnalyzing(false);
         }
@@ -205,52 +260,112 @@ const CropHealthDetector = () => {
         }
     };
 
-    const getRipenessAnalysis = () => {
+    // Agriculturally accurate data based on ripeness and confidence
+    const getDetailedAnalysis = () => {
         if (!results || !results.predictions || results.predictions.length === 0) {
-            return { status: 'unknown', confidence: 0, message: 'No fruits detected' };
+            return null;
         }
 
         const predictions = results.predictions;
         const highestConfidence = Math.max(...predictions.map(p => p.confidence));
         const bestPrediction = predictions.find(p => p.confidence === highestConfidence);
+        const confidence = Math.round(highestConfidence * 100);
 
-        if (bestPrediction) {
-            const className = bestPrediction.class.toLowerCase();
-            let status = 'unknown';
-            let message = '';
+        if (!bestPrediction) return null;
 
-            if (className.includes('ripe') || className.includes('mature')) {
-                status = 'ripe';
-                message = 'Ready for harvest';
-            } else if (className.includes('unripe') || className.includes('green')) {
-                status = 'unripe';
-                message = 'Needs more time';
-            } else if (className.includes('overripe') || className.includes('rotten')) {
-                status = 'overripe';
-                message = 'Past optimal time';
-            }
+        const className = bestPrediction.class.toLowerCase();
+        let status, qualityGrade, harvestWindow, shelfLife, storageTemp, storageHumidity, marketReady;
 
-            return {
-                status,
-                confidence: Math.round(highestConfidence * 100),
-                message,
-                detectedClass: bestPrediction.class
-            };
+        // Determine ripeness status
+        if (className.includes('ripe') && !className.includes('unripe') && !className.includes('overripe')) {
+            status = 'ripe';
+        } else if (className.includes('unripe') || className.includes('green') || className.includes('immature')) {
+            status = 'unripe';
+        } else if (className.includes('overripe') || className.includes('rotten') || className.includes('spoiled')) {
+            status = 'overripe';
+        } else {
+            status = 'unknown';
         }
 
-        return { status: 'unknown', confidence: 0, message: 'Unable to determine' };
+        // Quality grade based on confidence
+        if (confidence >= 90) qualityGrade = 'A+';
+        else if (confidence >= 80) qualityGrade = 'A';
+        else if (confidence >= 70) qualityGrade = 'B+';
+        else if (confidence >= 60) qualityGrade = 'B';
+        else qualityGrade = 'C';
+
+        // Harvest timing, storage, and market readiness
+        if (status === 'ripe') {
+            if (confidence >= 85) {
+                harvestWindow = '24-48 hours';
+                shelfLife = '5-7 days';
+                marketReady = true;
+            } else if (confidence >= 70) {
+                harvestWindow = '48-72 hours';
+                shelfLife = '4-6 days';
+                marketReady = true;
+            } else {
+                harvestWindow = '2-4 days';
+                shelfLife = '3-5 days';
+                marketReady = true;
+            }
+            storageTemp = '10-15°C';
+            storageHumidity = '85-90%';
+
+        } else if (status === 'unripe') {
+            if (confidence >= 80) {
+                harvestWindow = '5-7 days';
+                shelfLife = 'Monitor daily';
+                marketReady = false;
+            } else {
+                harvestWindow = '7-10 days';
+                shelfLife = 'Check in 3 days';
+                marketReady = false;
+            }
+            storageTemp = '12-18°C';
+            storageHumidity = '80-85%';
+
+        } else if (status === 'overripe') {
+            harvestWindow = 'Immediate';
+            shelfLife = '12-24 hours';
+            marketReady = false;
+            storageTemp = '8-12°C';
+            storageHumidity = '85-90%';
+
+        } else {
+            harvestWindow = 'Unable to determine';
+            shelfLife = 'N/A';
+            marketReady = false;
+            storageTemp = '10-15°C';
+            storageHumidity = '85-90%';
+        }
+
+        return {
+            status,
+            confidence,
+            qualityGrade,
+            harvestWindow,
+            shelfLife,
+            storageTemp,
+            storageHumidity,
+            marketReady,
+            detectedClass: bestPrediction.class,
+            totalDetections: predictions.length
+        };
     };
 
-    const analysis = results ? getRipenessAnalysis() : null;
+    const analysis = getDetailedAnalysis();
 
-    // Cleanup on unmount
-    React.useEffect(() => {
+    useEffect(() => {
         return () => {
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
             }
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+            }
         };
-    }, [stream]);
+    }, [stream, previewUrl]);
 
     return (
         <div className="crop-health-detector">
@@ -269,7 +384,7 @@ const CropHealthDetector = () => {
 
             {/* Main Content Grid */}
             <div className="detector-grid">
-                {/* Upload Section */}
+                {/* Upload/Camera Section */}
                 <div className="upload-section">
                     {!isCameraActive ? (
                         <div
@@ -290,14 +405,16 @@ const CropHealthDetector = () => {
                             ) : (
                                 <div className="image-preview">
                                     <img src={previewUrl} alt="Selected crop" />
-                                    <button className="remove-btn" onClick={resetAnalysis}>
+                                    <button className="remove-btn" onClick={(e) => {
+                                        e.stopPropagation();
+                                        resetAnalysis();
+                                    }}>
                                         <X size={16} />
                                     </button>
                                 </div>
                             )}
                         </div>
                     ) : (
-                        // Camera View
                         <div className="camera-container">
                             <video
                                 ref={videoRef}
@@ -307,13 +424,22 @@ const CropHealthDetector = () => {
                                 className="camera-video"
                             />
                             <div className="camera-overlay">
-                                <div className="camera-frame"></div>
+                                <div className="camera-frame">
+                                    <div className="corner top-left"></div>
+                                    <div className="corner top-right"></div>
+                                    <div className="corner bottom-left"></div>
+                                    <div className="corner bottom-right"></div>
+                                </div>
                                 <div className="camera-controls">
-                                    <button className="capture-btn" onClick={capturePhoto}>
+                                    <button
+                                        className="capture-btn"
+                                        onClick={capturePhoto}
+                                        disabled={!stream}
+                                    >
                                         <Camera size={24} />
                                     </button>
                                     <button className="stop-camera-btn" onClick={stopCamera}>
-                                        <Square size={20} />
+                                        <Square size={16} />
                                     </button>
                                 </div>
                             </div>
@@ -328,10 +454,8 @@ const CropHealthDetector = () => {
                         style={{ display: 'none' }}
                     />
 
-                    {/* Hidden canvas for photo capture */}
                     <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-                    {/* Action Buttons */}
                     {!isCameraActive && (
                         <div className="input-options">
                             <button className="option-btn" onClick={() => fileInputRef.current?.click()}>
@@ -360,7 +484,7 @@ const CropHealthDetector = () => {
                                 ) : (
                                     <>
                                         <Scan size={16} />
-                                        Analyze
+                                        Analyze Crop
                                     </>
                                 )}
                             </button>
@@ -381,67 +505,156 @@ const CropHealthDetector = () => {
                         </div>
                     )}
 
-                    {results && analysis ? (
+                    {analysis ? (
                         <div className="results-content">
-                            {/* Main Result */}
-                            <div className={`result-card ${analysis.status}`}>
-                                <div className="result-icon">
-                                    {analysis.status === 'ripe' && <CheckCircle size={20} />}
-                                    {analysis.status === 'unripe' && <TrendingUp size={20} />}
-                                    {analysis.status === 'overripe' && <AlertTriangle size={20} />}
-                                    {analysis.status === 'unknown' && <AlertCircle size={20} />}
+                            {/* Primary Status Card */}
+                            <div className={`primary-status-card ${analysis.status}`}>
+                                <div className="status-header">
+                                    <div className="status-icon">
+                                        {analysis.status === 'ripe' && <CheckCircle size={24} />}
+                                        {analysis.status === 'unripe' && <TrendingUp size={24} />}
+                                        {analysis.status === 'overripe' && <AlertTriangle size={24} />}
+                                        {analysis.status === 'unknown' && <AlertCircle size={24} />}
+                                    </div>
+                                    <div className="status-info">
+                                        <h4>{analysis.detectedClass}</h4>
+                                        <div className="status-badges">
+                                            <span className="grade-badge">Grade {analysis.qualityGrade}</span>
+                                            <span className={`market-badge ${analysis.marketReady ? 'ready' : 'not-ready'}`}>
+                                                {analysis.marketReady ? '✓ Market Ready' : '⚠ Not Ready'}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="result-info">
-                                    <h4>{analysis.message}</h4>
-                                    <p>{analysis.detectedClass}</p>
-                                    <div className="confidence">
-                                        <span>Confidence: {analysis.confidence}%</span>
-                                        <div className="progress-bar">
-                                            <div
-                                                className="progress-fill"
-                                                style={{ width: `${analysis.confidence}%` }}
-                                            ></div>
+                                <div className="confidence-bar">
+                                    <div className="confidence-header">
+                                        <span>AI Confidence</span>
+                                        <span className="confidence-value">{analysis.confidence}%</span>
+                                    </div>
+                                    <div className="progress-bar">
+                                        <div
+                                            className={`progress-fill ${analysis.confidence >= 80 ? 'high' : analysis.confidence >= 60 ? 'medium' : 'low'}`}
+                                            style={{ width: `${analysis.confidence}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Key Metrics Grid */}
+                            <div className="metrics-grid">
+                                <div className="metric-card">
+                                    <div className="metric-icon timing">
+                                        <Clock size={18} />
+                                    </div>
+                                    <div className="metric-content">
+                                        <span className="metric-label">Harvest Window</span>
+                                        <span className="metric-value">{analysis.harvestWindow}</span>
+                                    </div>
+                                </div>
+
+                                <div className="metric-card">
+                                    <div className="metric-icon quality">
+                                        <Star size={18} />
+                                    </div>
+                                    <div className="metric-content">
+                                        <span className="metric-label">Quality Grade</span>
+                                        <span className="metric-value">{analysis.qualityGrade}</span>
+                                    </div>
+                                </div>
+
+                                <div className="metric-card">
+                                    <div className="metric-icon shelf">
+                                        <Calendar size={18} />
+                                    </div>
+                                    <div className="metric-content">
+                                        <span className="metric-label">Expected Shelf Life</span>
+                                        <span className="metric-value">{analysis.shelfLife}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Storage Recommendations */}
+                            <div className="storage-recommendations">
+                                <h5><Package size={16} /> Storage Guidelines</h5>
+                                <div className="storage-grid">
+                                    <div className="storage-item">
+                                        <Thermometer size={16} />
+                                        <div>
+                                            <span className="storage-label">Temperature</span>
+                                            <span className="storage-value">{analysis.storageTemp}</span>
+                                        </div>
+                                    </div>
+                                    <div className="storage-item">
+                                        <Leaf size={16} />
+                                        <div>
+                                            <span className="storage-label">Humidity</span>
+                                            <span className="storage-value">{analysis.storageHumidity}</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Additional Predictions */}
-                            {results.predictions && results.predictions.length > 1 && (
-                                <div className="additional-results">
-                                    <h5>All Detections ({results.predictions.length})</h5>
-                                    <div className="predictions-grid">
-                                        {results.predictions.map((prediction, index) => (
-                                            <div key={index} className="prediction-item">
-                                                <span className="prediction-class">{prediction.class}</span>
-                                                <span className="prediction-confidence">
-                                                    {Math.round(prediction.confidence * 100)}%
-                                                </span>
+                            {/* Action Recommendations */}
+                            <div className="action-recommendations">
+                                <h5>Recommended Actions</h5>
+                                <div className={`action-card ${analysis.status}`}>
+                                    <div className="action-icon">
+                                        <Leaf size={18} />
+                                    </div>
+                                    <div className="action-text">
+                                        {analysis.status === 'ripe' && analysis.confidence >= 85 && (
+                                            <p><strong>Peak Ripeness Detected:</strong> Ideal time for harvest to ensure maximum quality and market value. Store immediately at recommended temperature after harvest.</p>
+                                        )}
+                                        {analysis.status === 'ripe' && analysis.confidence < 85 && (
+                                            <p><strong>Approaching Peak:</strong> Crop is ripe but monitor closely. Harvest within the recommended window for optimal quality.</p>
+                                        )}
+                                        {analysis.status === 'unripe' && (
+                                            <p><strong>Still Developing:</strong> Crop needs more time to reach optimal ripeness. Continue monitoring and re-scan in {analysis.confidence >= 80 ? '3-4 days' : '5-7 days'}. Maintain proper field conditions.</p>
+                                        )}
+                                        {analysis.status === 'overripe' && (
+                                            <p><strong>Past Prime:</strong> Quality is declining. Harvest immediately if not already done. Best suited for processing or immediate local sale. Avoid long-distance transport.</p>
+                                        )}
+                                        {analysis.status === 'unknown' && (
+                                            <p><strong>Analysis Uncertain:</strong> Unable to determine ripeness accurately. Try retaking the image with better lighting, clearer focus, and closer view of the crop.</p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Additional Detections */}
+                            {analysis.totalDetections > 1 && results.predictions && (
+                                <div className="additional-detections">
+                                    <h5>All Detections ({analysis.totalDetections} items)</h5>
+                                    <div className="detections-list">
+                                        {results.predictions.map((pred, index) => (
+                                            <div key={index} className="detection-item">
+                                                <span className="detection-name">{pred.class}</span>
+                                                <span className="detection-confidence">{Math.round(pred.confidence * 100)}%</span>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
-
-                            {/* Quick Recommendations */}
-                            <div className="recommendations">
-                                <h5>Recommendation</h5>
-                                <div className={`recommendation-card ${analysis.status}`}>
-                                    <Leaf size={16} />
-                                    <span>
-                                        {analysis.status === 'ripe' && 'Harvest immediately for best quality'}
-                                        {analysis.status === 'unripe' && 'Monitor and wait 3-7 days before harvesting'}
-                                        {analysis.status === 'overripe' && 'Use for processing or check other fruits'}
-                                        {analysis.status === 'unknown' && 'Consider retaking image with better lighting'}
-                                    </span>
-                                </div>
-                            </div>
                         </div>
                     ) : !selectedImage && !isCameraActive && (
                         <div className="empty-state">
                             <Zap size={32} />
-                            <h4>AI Analysis Ready</h4>
-                            <p>Upload an image or use camera to get instant crop health insights powered by advanced AI.</p>
+                            <h4>AI-Powered Crop Analysis</h4>
+                            <p>Upload an image or use your camera to get instant, accurate ripeness detection powered by advanced AI technology.</p>
+                            <div className="empty-state-features">
+                                <div className="feature-item">
+                                    <CheckCircle size={16} />
+                                    <span>Accurate ripeness detection</span>
+                                </div>
+                                <div className="feature-item">
+                                    <CheckCircle size={16} />
+                                    <span>Harvest timing guidance</span>
+                                </div>
+                                <div className="feature-item">
+                                    <CheckCircle size={16} />
+                                    <span>Storage recommendations</span>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

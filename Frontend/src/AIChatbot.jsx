@@ -51,27 +51,26 @@ const AIChatbot = () => {
                     body: formData
                 });
             } else {
-                response = await fetch(`${AI_BACKEND_URL}/chat`, {
+                const res = await fetch(`${AI_BACKEND_URL}/chat`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        message: inputMessage,
-                        role: 'farmer'
-                    })
+                    body: JSON.stringify({ message: inputMessage })
                 });
-            }
-
-            const data = await response.json();
-            if (response.ok) {
+                const data = await res.json();
+                if (!res.ok) {
+                    const errText = data?.error?.message || data?.message || `HTTP ${res.status}`;
+                    throw new Error(errText);
+                }
                 const botMessage = {
-                    text: data.reply || data.analysis || 'Response received',
+                    text: data.reply || 'Response received',
                     sender: 'bot',
                     timestamp: new Date().toLocaleTimeString()
                 };
                 setMessages(prev => [...prev, botMessage]);
-            } else {
-                throw new Error(data.error || 'Failed to get response');
+                setIsLoading(false);
+                return;
             }
+
         } catch (error) {
             console.error('Chat error:', error);
             const errorMessage = {

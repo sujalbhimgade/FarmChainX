@@ -1,244 +1,181 @@
 import os
-import math
-import json
-import base64
-from io import BytesIO
-from datetime import datetime
-from urllib.parse import urlencode
-
 import requests
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 from dotenv import load_dotenv
 
+# Load .env variables
 load_dotenv()
 
-app = Flask(__name__)
-CORS(app)
+# ==== Config ====
+# Frontend origin (Vite dev)
+FRONTEND_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
-# --- ENV / CONFIG ---
-# Chat / LLM
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+# OpenRouter (chat) config
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "").strip()
+OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").rstrip("/")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini")
 
-# Roboflow Hosted API
-ROBOFLOW_API_KEY = os.getenv("ROBOFLOW_API_KEY", "")
-ROBOFLOW_MODEL_ID = os.getenv("ROBOFLOW_MODEL_ID", "")  # e.g., "your-project/1"
-ROBOFLOW_API_URL = os.getenv("ROBOFLOW_API_URL", "https://detect.roboflow.com")
+# Roboflow (ripeness) config
+ROBOFLOW_API_KEY = os.getenv("ROBOFLOW_API_KEY", "").strip()
+ROBOFLOW_MODEL_ID = os.getenv("ROBOFLOW_MODEL_ID", "fruit-ripeness-f8ptq/1")
 
-# Sentinel Hub Statistical API
-SH_CLIENT_ID = os.getenv("SH_CLIENT_ID", "")
-SH_CLIENT_SECRET = os.getenv("SH_CLIENT_SECRET", "")
-SH_STAT_API = os.getenv("SH_STAT_API", "https://services.sentinel-hub.com/api/v1/statistical")
+# ==== App ====
+app = Flask(__name__)
 
-# Open-Meteo
-OPEN_METEO_URL = os.getenv("OPEN_METEO_URL", "https://api.open-meteo.com/v1/forecast")
-
-
-# --- Helpers ---
-def error(msg, code=400):
-    return jsonify({"ok": False, "error": msg}), code
-
-
-def get_sentinalhub_token():
-    """
-    Get OAuth token from Sentinel Hub auth server.
-    """
-    token_url = "https://services.sentinel-hub.com/oauth/token"
-    data = {
-        "grant_type": "client_credentials",
-        "client_id": SH_CLIENT_ID,
-        "client_secret": SH_CLIENT_SECRET,
+# CORS for all relevant endpoints
+CORS(app, resources={
+    r"/chat": {
+        "origins": FRONTEND_ORIGINS,
+        "methods": ["POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization", "X-Title", "HTTP-Referer"]
+    },
+    r"/crop-health": {
+        "origins": FRONTEND_ORIGINS,
+        "methods": ["POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    },
+    r"/api/*": {
+        "origins": FRONTEND_ORIGINS,
+        "methods": ["POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
     }
-    resp = requests.post(token_url, data=data, timeout=30)
-    if resp.status_code != 200:
-        raise RuntimeError(f"Sentinel Hub auth failed: {resp.text}")
-    return resp.json().get("access_token")
+})
 
+# ==== Health ====
+@app.get("/health")
+def health():
+    return {"status": "ok"}, 200
 
-def polygon_center(coords):
-    """
-    Rough center of a GeoJSON Polygon (lon, lat) average of vertices.
-    coords: list of linear ring arrays [[lon,lat], ...] first ring.
-    """
-    ring = coords[0]
-    lon = sum(p[0] for p in ring) / len(ring)
-    lat = sum(p[1] for p in ring) / len(ring)
-    return lat, lon  # return (lat, lon)
+# ==== CORS preflight helpers ====
+def _preflight_ok():
+    origin = request.headers.get("Origin", FRONTEND_ORIGINS[0])
+    resp = make_response("", 204)
+    resp.headers["Access-Control-Allow-Origin"] = origin
+    resp.headers["Vary"] = "Origin"
+    resp.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    resp.headers["Access-Control-Allow-Headers"] = request.headers.get(
+        "Access-Control-Request-Headers",
+        "Content-Type, Authorization, X-Title, HTTP-Referer"
+    )
+    return resp
 
+@app.route("/chat", methods=["OPTIONS"])
+def chat_options():
+    return _preflight_ok()
 
-# --- Routes ---
+@app.route("/crop-health", methods=["OPTIONS"])
+def crop_health_options():
+    return _preflight_ok()
 
-@app.route("/chat", methods=["POST"])
+@app.route("/api/ai/ripeness", methods=["OPTIONS"])
+def ripeness_options():
+    return _preflight_ok()
+
+# ==== Chat endpoint (OpenRouter proxy) ====
+@app.route("/chat", methods=["POST","OPTIONS"])
 def chat():
-    """
-    Body: { "message": "your question" }
-    Returns: { "ok": true, "reply": "AI answer" }
-    """
-    if not OPENROUTER_API_KEY:
-        return error("OPENROUTER_API_KEY missing on server", 500)
+    if request.method == "OPTIONS":
+        return make_response("", 204)
 
     data = request.get_json(silent=True) or {}
-    user_msg = data.get("message", "").strip()
+    user_msg = (data.get("message") or "").strip()
     if not user_msg:
-        return error("message is required")
+        return jsonify(error={"message": "message is required"}), 400
 
-    url = f"{OPENROUTER_BASE_URL}/chat/completions"
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
-        # Optional but recommended headers for OpenRouter attribution:
-        "HTTP-Referer": "http://localhost",
-        "X-Title": "FarmChainX-Flask",
+        "HTTP-Referer": "http://localhost:5173",
+        "X-Title": "FarmchainX",
     }
     payload = {
-        "model": OPENROUTER_MODEL,
-        "messages": [
-            {"role": "system", "content": "You are a helpful farm assistant for traceability and crop care."},
-            {"role": "user", "content": user_msg},
-        ],
-        "temperature": 0.2,
+        "model": OPENROUTER_MODEL,                # e.g. "openai/gpt-4o-mini"
+        "messages": [{"role": "user", "content": user_msg}],
     }
-    resp = requests.post(url, headers=headers, json=payload, timeout=60)
-    if resp.status_code != 200:
-        return error(f"Chat provider error: {resp.text}", 502)
 
-    out = resp.json()
-    try:
-        reply = out["choices"][0]["message"]["content"]
-    except Exception:
-        return error("Unexpected chat response", 502)
+    r = requests.post(f"{OPENROUTER_BASE_URL}/chat/completions",
+                      headers=headers, json=payload, timeout=60)
 
-    return jsonify({"ok": True, "reply": reply})
+    if not r.ok:
+        try:
+            err = r.json()
+        except Exception:
+            err = {"message": r.text}
+        # Surface provider error to the client
+        return jsonify(ok=False, error={"message": f"Provider error: {err.get('error',{}).get('message') or err.get('message') or r.reason}"}), 502
 
+    out = r.json()
+    reply = (
+        out.get("choices", [{}])[0].get("message", {}).get("content")
+        or out.get("message", {}).get("content")
+        or out.get("text")
+        or "OK"
+    )
+    return jsonify(ok=True, reply=reply), 200
 
+# ==== Ripeness / crop health core function ====
+def _run_ripeness_inference(file_storage):
+    """
+    Accepts a Werkzeug FileStorage (from request.files['image' or 'file'])
+    Runs Roboflow serverless inference, returns summary + raw predictions.
+    """
+    # Lazy imports so the app starts even if libs are missing (you'll need Pillow + inference-sdk installed)
+    from PIL import Image
+    from inference_sdk import InferenceHTTPClient, InferenceConfiguration
+
+    if not ROBOFLOW_API_KEY:
+        return {"error": "ROBOFLOW_API_KEY missing on server"}, 500
+
+    img = Image.open(file_storage.stream).convert("RGB")
+
+    client = InferenceHTTPClient(
+        api_url="https://serverless.roboflow.com",
+        api_key=ROBOFLOW_API_KEY,
+    )
+    config = InferenceConfiguration(
+        confidence_threshold=0.30,
+        iou_threshold=0.50,
+    )
+
+    with client.use_configuration(config):
+        result = client.infer(img, model_id=ROBOFLOW_MODEL_ID)
+
+    # Build a simple summary
+    summary = {"ripe": 0, "unripe": 0, "overripe": 0}
+    for p in result.get("predictions", []):
+        cls = (p.get("class") or "").lower()
+        if "unripe" in cls:
+            summary["unripe"] += 1
+        elif "overripe" in cls or "over-ripe" in cls:
+            summary["overripe"] += 1
+        elif "ripe" in cls:
+            summary["ripe"] += 1
+
+    return {"model_id": ROBOFLOW_MODEL_ID, "summary": summary, "raw": result}, 200
+
+# Primary route used by your UI
 @app.route("/crop-health", methods=["POST"])
 def crop_health():
-    """
-    Multipart form-data:
-      - image: file
-    Returns: Roboflow predictions
-    """
-    if not ROBOFLOW_API_KEY or not ROBOFLOW_MODEL_ID:
-        return error("Roboflow API config missing on server", 500)
+    try:
+        storage = request.files.get("image") or request.files.get("file")
+        if storage is None:
+            return jsonify({"error": "form-data file missing. Use field 'image' (or 'file')."}), 400
 
-    if "image" not in request.files:
-        return error("image file is required")
+        data, status = _run_ripeness_inference(storage)
+        if status != 200:
+            return jsonify(data), status
+        return jsonify(data), 200
 
-    img_file = request.files["image"]
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-    # Build URL: https://detect.roboflow.com/<model_id>?api_key=...
-    url = f"{ROBOFLOW_API_URL}/{ROBOFLOW_MODEL_ID}"
-    params = {"api_key": ROBOFLOW_API_KEY}
-    files = {"file": (img_file.filename, img_file.stream, img_file.mimetype)}
+# Alias route to avoid 404 if UI still calls /api/ai/ripeness
+@app.route("/api/ai/ripeness", methods=["POST"])
+def ripeness_alias():
+    return crop_health()
 
-    resp = requests.post(url, params=params, files=files, timeout=60)
-    if resp.status_code != 200:
-        return error(f"Roboflow error: {resp.text}", 502)
-
-    return jsonify({"ok": True, "predictions": resp.json()})
-
-
-@app.route("/ndvi-weather", methods=["POST"])
-def ndvi_weather():
-    """
-    Body:
-    {
-      "polygon": { "type":"Polygon", "coordinates":[ [ [lon,lat],... ] ] },
-      "from": "2025-06-01",
-      "to":   "2025-06-30"
-    }
-    Returns: NDVI daily stats and simple weather.
-    """
-    body = request.get_json(silent=True) or {}
-    poly = body.get("polygon")
-    t_from = body.get("from")
-    t_to = body.get("to")
-
-    if not poly or poly.get("type") != "Polygon":
-        return error("polygon (GeoJSON Polygon) is required")
-    if not t_from or not t_to:
-        return error("from and to dates are required (YYYY-MM-DD)")
-
-    # 1) Sentinel Hub NDVI timeseries via Statistical API
-    if not SH_CLIENT_ID or not SH_CLIENT_SECRET:
-        return error("Sentinel Hub credentials missing on server", 500)
-
-    token = get_sentinalhub_token()
-
-    # Evalscript for NDVI (B08=NIR, B04=RED)
-    evalscript = """
-//VERSION=3
-function setup() {
-  return {
-    input: [{bands: ["B04","B08","dataMask"]}],
-    output: [
-      { id: "ndvi", bands: 1 },
-      { id: "dataMask", bands: 1 }
-    ]
-  };
-}
-function evaluatePixel(s) {
-  let ndvi = (s.B08 - s.B04) / (s.B08 + s.B04);
-  return { ndvi: [ndvi], dataMask: [s.dataMask] };
-}
-"""
-
-    stat_payload = {
-        "input": {
-            "bounds": {
-                "geometry": poly
-            },
-            "data": [
-                {
-                    "type": "S2L2A"
-                }
-            ]
-        },
-        "aggregation": {
-            "timeRange": {"from": f"{t_from}T00:00:00Z", "to": f"{t_to}T23:59:59Z"},
-            "aggregationInterval": {"of": "P1D"},
-            "resx": 10, "resy": 10,
-            "evalscript": evalscript
-        },
-        "calculations": {
-            "ndvi": [
-                {"stat": "mean"},
-                {"stat": "min"},
-                {"stat": "max"},
-                {"stat": "stDev"},
-                {"stat": "median"}
-            ]
-        }
-    }
-
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    ndvi_resp = requests.post(SH_STAT_API, headers=headers, json=stat_payload, timeout=120)
-    if ndvi_resp.status_code != 200:
-        return error(f"Sentinel Hub error: {ndvi_resp.text}", 502)
-    ndvi_json = ndvi_resp.json()
-
-    # 2) Simple weather from Open-Meteo (center of polygon)
-    lat, lon = polygon_center(poly["coordinates"])
-    weather_params = {
-        "latitude": lat,
-        "longitude": lon,
-        "hourly": "temperature_2m,relative_humidity_2m",
-        "timezone": "auto"
-    }
-    weather_resp = requests.get(OPEN_METEO_URL, params=weather_params, timeout=30)
-    if weather_resp.status_code != 200:
-        return error(f"Open-Meteo error: {weather_resp.text}", 502)
-
-    return jsonify({"ok": True, "ndvi": ndvi_json, "weather": weather_resp.json()})
-
-
-@app.route("/health", methods=["GET"])
-def health():
-    return jsonify({"ok": True, "service": "FarmChainX Flask AI"}), 200
-
-
+# ==== Main ====
 if __name__ == "__main__":
-    port = int(os.getenv("FLASK_RUN_PORT", "5000"))
-    app.run(host="0.0.0.0", port=port)
+    # Keep this on port 5000 to match the frontend config
+    app.run(host="0.0.0.0", port=5000, debug=True)
