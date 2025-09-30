@@ -5,9 +5,10 @@ import {
   Cloud, Thermometer, Truck, Package, Send, Users, CheckCircle, Clock, AlertCircle,
   Eye, QrCode, Target, Droplets, Sun, Wind, Activity, FileText, Phone, Mail,
   Building2, CreditCard, ArrowRight, AlertTriangle, Navigation, Warehouse, Star,
-  Calculator, PieChart, BookOpen, Shield, RefreshCw
+  Calculator, PieChart, BookOpen, Shield, RefreshCw, Brain
 } from 'lucide-react';
 import './CropManagementSystem.css';
+import CropHealthDetector from './CropHealthDetector';
 import QRCode from 'react-qr-code';
 import logo from './assets/farmchainxLogo.png';
 import apiService from './conc/api';
@@ -982,8 +983,7 @@ const CropManagementSystem = () => {
     { id: 'shipments', label: 'Shipments', icon: Truck },
     { id: 'expenses', label: 'Farm Expenses', icon: Calculator },
     { id: 'customers', label: 'Customers', icon: Users },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'calendar', label: 'Farm Calendar', icon: Calendar },
+    { id: 'analytics', label: 'AI Analysis', icon: Brain },
     { id: 'weather', label: 'Weather Alerts', icon: Cloud },
     { id: 'knowledge', label: 'Knowledge Base', icon: BookOpen },
     { id: 'settings', label: 'Settings', icon: Settings }
@@ -1915,19 +1915,8 @@ const CropManagementSystem = () => {
 
       case 'analytics':
         return (
-          <div className="analytics-placeholder">
-            <BarChart3 size={64} />
-            <p>Advanced Farm Analytics Coming Soon!</p>
-            <span>Track crop performance, yield analysis, profit margins, and market trends</span>
-          </div>
-        );
-
-      case 'calendar':
-        return (
-          <div className="calendar-placeholder">
-            <Calendar size={64} />
-            <p>Farm Calendar Planning Coming Soon!</p>
-            <span>Schedule planting, harvesting, maintenance, and track seasonal activities</span>
+          <div className="ai-analysis-section">
+            <CropHealthDetector />
           </div>
         );
 

@@ -6,12 +6,15 @@ import CropManagementSystem from './CropManagementSystem';
 import AdminDashboard from './AdminDashboard';
 import DistributorDashboard from './DistributorDashboard';
 import RetailerDashboard from './RetailerDashboard';
-import ConsumerDashboard from './ConsumerDashboard';
 import CropShowcase from './CropShowcase';
+import AIChatbot from './AIChatbot'; 
+import CropHealthDetector from './CropHealthDetector';
+
 
 
 function App() {
   return (
+    <>
      <Routes>
        
       <Route path="/" element={<LandingPage />} />
@@ -21,8 +24,10 @@ function App() {
       <Route path="/admin" element={<AdminDashboard/>} />
       <Route path="/distributor" element={<DistributorDashboard/>} />
       <Route path="/Retailer" element={<RetailerDashboard />} />
-      <Route path="/consumer" element={<ConsumerDashboard/>} />
+      <Route path="/crop-health" element={CropHealthDetector} />
      </Routes>
+     <AIChatbot />
+     </>
   );
 }
 

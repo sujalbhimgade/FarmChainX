@@ -1614,63 +1614,48 @@ body {
   margin: 0;
 }
 
-/* Enhanced Analytics Placeholder */
-.analytics-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  text-align: center;
-  color: #64748b;
-  min-height: 400px;
+/* AI Analysis Section */
+.ai-analysis-section {
+  background: white;
+  border-radius: 16px;
+  padding: 0;
+  margin: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
 }
 
-.analytics-placeholder svg {
-  color: var(--primary-start);
-  margin-bottom: 16px;
+/* Override CropHealthDetector styles to match your theme */
+.ai-analysis-section .crop-health-detector {
+  padding: 24px;
+  margin: 0;
+  font-family: inherit;
 }
 
-.analytics-placeholder p {
-  font-size: 20px;
-  font-weight: 600;
-  color: #374151;
-  margin: 0 0 8px 0;
+/* Match your theme colors */
+.ai-analysis-section .header-icon {
+  background: var(--primary-gradient);
 }
 
-.analytics-placeholder span {
-  font-size: 14px;
-  color: #6b7280;
+.ai-analysis-section .upload-btn,
+.ai-analysis-section .analyze-btn {
+  background: var(--primary-gradient);
 }
 
-.calendar-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  text-align: center;
-  color: #64748b;
-  min-height: 400px;
+.ai-analysis-section .upload-btn:hover,
+.ai-analysis-section .analyze-btn:hover:not(:disabled) {
+  background: var(--primary-hover);
 }
 
-.calendar-placeholder svg {
-  color: var(--primary-start);
-  margin-bottom: 16px;
+.ai-analysis-section .upload-area:hover {
+  border-color: var(--primary-start);
+  background: var(--primary-bg);
 }
 
-.calendar-placeholder p {
-  font-size: 20px;
-  font-weight: 600;
-  color: #374151;
-  margin: 0 0 8px 0;
+.ai-analysis-section .upload-area.drag-over {
+  border-color: var(--primary-start);
+  background: var(--primary-light);
 }
-
-.calendar-placeholder span {
-  font-size: 14px;
-  color: #6b7280;
-}
-
 /* Enhanced QR Code Center */
 .qr-center {
   display: flex;
