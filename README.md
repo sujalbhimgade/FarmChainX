@@ -1,4 +1,4 @@
-# FarmChainX
+# 🌱 FarmChainX - AI Driven Agriculture Traceability Network 
 
 A role-based, AI-enabled agriculture platform connecting farmers, distributors, retailers, consumers, and admins to streamline crop management, supply visibility, and trusted farm-to-fork data.
 
@@ -21,6 +21,14 @@ A role-based, AI-enabled agriculture platform connecting farmers, distributors, 
 - Validation  
 - Swagger/OpenAPI  
 
+### AI Microservice
+- Python (Flask) REST endpoints for crop image analysis
+
+- OpenAPI/Swagger UI for AI routes
+
+- Normalized JSON outputs for inference
+
+  
 ### Database
 - MySQL with schema migrations/ORM mapping  
 
@@ -66,11 +74,19 @@ The project is designed as a deliverable for the **Infosys Springboard Java full
 - **Consumer**: Product trace view with origin, handling, and quality checkpoints  
 
 ---
+## 🤖 AI Context
 
+### Chatbot
+A role-aware assistant that answers farming and traceability queries in natural language, grounds responses in authorized real-time data, deep-links to relevant screens, and enforces RBAC and tenant isolation.
+
+### Crop health detection
+An image-based service that classifies ripeness and quality from uploads, returning stage, confidence, grade, and handling advice inside dashboards to accelerate harvest, intake, and QC decisions.
+
+---
 ## ⚡ Environment
 
 - **Frontend**: `.env` for API base URL, auth keys, and feature flags  
-- **Backend**: `application.yml` for DB URL/credentials, JWT secret, and CORS  
+- **Backend**: `application.properties` for DB URL/credentials, JWT secret, and CORS  
 - **Database**: MySQL instance with migration scripts for reproducible setups  
 
 ---
@@ -80,7 +96,8 @@ The project is designed as a deliverable for the **Infosys Springboard Java full
 ### Prerequisites
 - Node.js  
 - Java 17+  
-- Maven/Gradle  
+- Maven/Gradle
+- Python 3.10+ 
 - MySQL  
 
 ### Setup
@@ -94,3 +111,31 @@ npm run dev
 # Backend
 cd backend
 mvn spring-boot:run
+
+# AI Microservice (Flask)
+cd Backend/farmchainx-flask
+python -m venv .venv
+```
+
+###  🧪 Testing
+- Frontend: Component tests and basic integration flows with mocked services
+
+- Backend: Service/repository tests with Spring Boot test utilities and in-memory or containerized DB
+
+- AI: Endpoint smoke tests (pytest/curl) validating schema and health
+
+### 🔐 Security & Auth
+- JWT-based authentication and role checks on protected endpoints
+
+- CORS configured per environment for frontend, backend, and AI microservice
+
+### 📦 Build & Deploy
+- Frontend: Vite build outputs static assets suitable for CDN or container delivery
+
+- Backend: Spring Boot packaged as an executable JAR or container image
+
+- AI: Flask packaged as a containerized service that can scale independently
+
+---
+### 📜 License
+- See the repository’s license file for terms.
