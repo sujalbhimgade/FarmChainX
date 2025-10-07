@@ -123,7 +123,7 @@ const LandingPage = () => {
 
     return (
         <div className="landing-page">
-            {/* Navigation */}
+            {}
             <nav className="navbar">
                 <div className="nav-container">
                     <div className="nav-brand">
@@ -152,7 +152,7 @@ const LandingPage = () => {
                 </div>
             </nav>
 
-            {/* Hero Section */}
+            {}
             <section id="home" className="hero-section" data-animate>
                 <div className="hero-container">
                     <div className="hero-content">
@@ -195,7 +195,7 @@ const LandingPage = () => {
                 </div>
             </section>
 
-            {/* Features Section - White Background */}
+            {}
             <section id="features" className="features-section white-section" data-animate>
                 <div className="container">
                     <div className="section-header">
@@ -224,7 +224,7 @@ const LandingPage = () => {
                 </div>
             </section>
 
-            {/* How It Works Section - Light Gray Background */}
+            {}
             <section className="how-it-works-section gray-section" data-animate>
                 <div className="container">
                     <div className="section-header">
@@ -268,7 +268,7 @@ const LandingPage = () => {
                 </div>
             </section>
 
-            {/* Testimonials Section - White Background */}
+            {}
             <section id="testimonials" className="testimonials-section white-section" data-animate>
                 <div className="container">
                     <div className="section-header">
@@ -304,7 +304,7 @@ const LandingPage = () => {
                 </div>
             </section>
 
-            {/* FAQ Section - Light Gray Background */}
+            {}
             <section className="faq-section gray-section" data-animate>
                 <div className="container">
                     <div className="section-header">
@@ -335,7 +335,7 @@ const LandingPage = () => {
                 </div>
             </section>
 
-            {/* CTA Section */}
+            {}
             <section className="cta-section" data-animate>
                 <div className="container">
                     <div className="cta-content">
@@ -356,7 +356,7 @@ const LandingPage = () => {
                 </div>
             </section>
 
-            {/* Footer */}
+            {}
             <footer id="contact" className="footer">
                 <div className="container">
                     <div className="footer-content">

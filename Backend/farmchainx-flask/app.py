@@ -4,23 +4,17 @@ from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-# Load .env variables
 load_dotenv()
 
-# ==== Config ====
-# Frontend origin (Vite dev)
 FRONTEND_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
-# OpenRouter (chat) config
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "").strip()
 OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").rstrip("/")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini")
 
-# Roboflow (ripeness) config
 ROBOFLOW_API_KEY = os.getenv("ROBOFLOW_API_KEY", "").strip()
 ROBOFLOW_MODEL_ID = os.getenv("ROBOFLOW_MODEL_ID", "fruit-ripeness-f8ptq/1")
 
-# ==== App ====
 app = Flask(__name__)
 
 # CORS for all relevant endpoints
@@ -42,12 +36,10 @@ CORS(app, resources={
     }
 })
 
-# ==== Health ====
 @app.get("/health")
 def health():
     return {"status": "ok"}, 200
 
-# ==== CORS preflight helpers ====
 def _preflight_ok():
     origin = request.headers.get("Origin", FRONTEND_ORIGINS[0])
     resp = make_response("", 204)
@@ -72,7 +64,7 @@ def crop_health_options():
 def ripeness_options():
     return _preflight_ok()
 
-# ==== Chat endpoint (OpenRouter proxy) ====
+
 @app.route("/chat", methods=["POST","OPTIONS"])
 def chat():
     if request.method == "OPTIONS":
@@ -90,7 +82,7 @@ def chat():
         "X-Title": "FarmchainX",
     }
     payload = {
-        "model": OPENROUTER_MODEL,                # e.g. "openai/gpt-4o-mini"
+        "model": OPENROUTER_MODEL,               
         "messages": [{"role": "user", "content": user_msg}],
     }
 
@@ -102,7 +94,7 @@ def chat():
             err = r.json()
         except Exception:
             err = {"message": r.text}
-        # Surface provider error to the client
+        
         return jsonify(ok=False, error={"message": f"Provider error: {err.get('error',{}).get('message') or err.get('message') or r.reason}"}), 502
 
     out = r.json()
@@ -114,13 +106,12 @@ def chat():
     )
     return jsonify(ok=True, reply=reply), 200
 
-# ==== Ripeness / crop health core function ====
 def _run_ripeness_inference(file_storage):
     """
     Accepts a Werkzeug FileStorage (from request.files['image' or 'file'])
     Runs Roboflow serverless inference, returns summary + raw predictions.
     """
-    # Lazy imports so the app starts even if libs are missing (you'll need Pillow + inference-sdk installed)
+
     from PIL import Image
     from inference_sdk import InferenceHTTPClient, InferenceConfiguration
 
@@ -141,7 +132,7 @@ def _run_ripeness_inference(file_storage):
     with client.use_configuration(config):
         result = client.infer(img, model_id=ROBOFLOW_MODEL_ID)
 
-    # Build a simple summary
+    
     summary = {"ripe": 0, "unripe": 0, "overripe": 0}
     for p in result.get("predictions", []):
         cls = (p.get("class") or "").lower()
@@ -154,7 +145,7 @@ def _run_ripeness_inference(file_storage):
 
     return {"model_id": ROBOFLOW_MODEL_ID, "summary": summary, "raw": result}, 200
 
-# Primary route used by your UI
+
 @app.route("/crop-health", methods=["POST"])
 def crop_health():
     try:
@@ -170,12 +161,11 @@ def crop_health():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# Alias route to avoid 404 if UI still calls /api/ai/ripeness
+
 @app.route("/api/ai/ripeness", methods=["POST"])
 def ripeness_alias():
     return crop_health()
 
-# ==== Main ====
+
 if __name__ == "__main__":
-    # Keep this on port 5000 to match the frontend config
     app.run(host="0.0.0.0", port=5000, debug=True)

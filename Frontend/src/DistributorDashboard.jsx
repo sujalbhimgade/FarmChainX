@@ -10,6 +10,7 @@ import {
   ArrowDown, ArrowRight, Activity, TrendingDown, Building2,
   IdCardIcon
 } from 'lucide-react';
+import Select, { components } from 'react-select';
 import './DistributorDashboard.css';
 import farmchainxLogo from './assets/farmchainxLogo.png';
 import QRCode from 'react-qr-code';
@@ -24,7 +25,6 @@ const DistributorDashboard = () => {
   const [salesOrders, setSalesOrders] = useState([]);
   const [retailers, setRetailers] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  // near other useState calls
   const [distributors, setDistributors] = useState([]);
 
 
@@ -43,8 +43,8 @@ const DistributorDashboard = () => {
   const [editingInventory, setEditingInventory] = useState(null);
   const [selectedShipment, setSelectedShipment] = useState(null);
   const [selectedQRData, setSelectedQRData] = useState(null);
+  const [orderError, setOrderError] = useState(null);
 
-  // Filter States
   const [filters, setFilters] = useState({
     status: '',
     destination: '',
@@ -117,17 +117,20 @@ const DistributorDashboard = () => {
 
   const mapInventoryToUi = item => ({
     id: item.id,
+    productName: item.crop?.name || '',
+    cropId: item.crop?.id,  
+    batchId: item.batchCode || '',
+    label: `${item.crop?.name || 'Product'} • ${item.batchCode || ''}`,
     product: item.crop?.name || item.batchCode || 'Batch',
     quantity: `${item.quantityKg || 0} kg`,
     location: item.location || '-',
     status: (item.status || 'AVAILABLE').toLowerCase(),
     grade: item.grade || '—',              // not provided by backend; placeholder
-    pricePerKg: item.unitPrice || 0,
+    pricePerKg: item?.pricePerKg ?? item?.unitPrice ?? 0,
     expiryDate: item.expiryDate || null,   // not provided; keep null
     qualityChecked: true,                  // UI flag only
     supplier: item.crop?.farmer?.fullName || '—',
     receivedDate: item.createdAt,          // ISO
-    batchId: item.batchCode,
     notes: item.notes || '',
   });
 
@@ -139,11 +142,25 @@ const DistributorDashboard = () => {
       console.error('Failed to load sales orders', e);
     }
   };
+
+  const loadRetailers = async () => {
+    try {
+      const list = await api.getPublicRetailers(); // instead of getMyRetailers()
+      setRetailers(Array.isArray(list) ? list : []);
+
+    } catch (e) {
+      console.error('Failed to load retailers', e);
+      setRetailers([]);
+    }
+  };
+
   // Load data on component mount
   useEffect(() => {
     loadInitialData();
     loadStoredData();
     loadSalesOrders();
+    loadRetailers();
+
 
   }, []);
 
@@ -164,6 +181,7 @@ const DistributorDashboard = () => {
     localStorage.setItem('distributor_retailers', JSON.stringify(retailers));
   }, [retailers]);
 
+ 
   const loadStoredData = () => {
     const storedShipments = localStorage.getItem('distributor_shipments');
     const storedInventory = localStorage.getItem('distributor_inventory');
@@ -180,23 +198,41 @@ const DistributorDashboard = () => {
 
   const loadInitialData = async () => {
     try {
-      // 1) Incoming shipments (to this distributor)
-      const incoming = await api.getIncomingShipments(); // ShipmentResponse[]
-      setShipments(incoming.map(mapShipmentToUi));
+      const incoming = await api.getIncomingShipments();
+      setShipments(Array.isArray(incoming) ? incoming.map(mapShipmentToUi) : []);
 
-      // 2) Distributor inventory
-      const inv = await api.getDistributorInventory(); // InventoryItem[]
-      setInventory(inv.map(mapInventoryToUi));
+      const inv = await api.getDistributorInventory();
+      setInventory(Array.isArray(inv) ? inv.map(mapInventoryToUi) : []);
 
-      // loadSalesOrders
       const orders = await api.getSalesOrders();
       setSalesOrders(Array.isArray(orders) ? orders : []);
-      // 3) (Optional) sales orders and retailers remain local for now
+
     } catch (e) {
       console.error('Distributor load error', e);
       // Keep previously stored local state as fallback
     }
   };
+
+  function buildCreateOrderPayload(formData, retailers, draftItems) {
+    const retailerId = Number(formData.retailerUserId);
+    const items = (draftItems || [])
+      .filter(it => Number(it.quantityKg) > 0)
+      .map(it => ({
+        // allow either productId or batchCode depending on selection in your UI
+        productId: it.productId ?? null,
+        batchCode: it.batchCode ?? null,
+        quantityKg: Number(it.quantityKg),
+        pricePerKg: Number(it.pricePerKg || it.price || 0)
+      }));
+
+    return {
+      retailerUserId: retailerId,
+      items,
+      deliveryDate: formData.deliveryDate || null,
+      notes: formData.notes || '',
+      paymentTerms: formData.paymentTerms || 'Net 30'
+    };
+  }
 
   // Utility Functions
   const formatDate = (dateString) => {
@@ -226,7 +262,69 @@ const DistributorDashboard = () => {
     });
   };
 
-  // Event Handlers
+  const handleShipOrder = async (order) => {
+    console.log('🚀 handleShipOrder start:', { orderId: order?.id, status: order?.status, order });
+
+    // Guard: API instance must exist and expose methods
+    if (!api || typeof api.createDistributorShipmentToRetailer !== 'function' || typeof api.updateSalesOrderStatus !== 'function') {
+      alert('API not initialized. Fix import path for api.js');
+      console.error('API not initialized or methods missing:', api);
+      return;
+    }
+
+    try {
+      const invList = Array.isArray(inventory) ? inventory : [];
+      const byBatch = new Map(invList.map(it => [String(it.batchId ?? it.batchCode ?? ''), it]));
+      console.log('📋 Inventory batches:', Array.from(byBatch.keys()));
+
+      // accept any backend shape
+      const lines = order?.lines || order?.products || order?.items || [];
+      if (!Array.isArray(lines) || lines.length === 0) {
+        console.warn('⚠️ No order lines to ship for order', order?.id);
+        alert('No order lines found to ship.');
+        return;
+      }
+
+      for (const li of lines) {
+        const batchCode = String(li.batchCode ?? li.batchId ?? '').trim();
+        const inv = byBatch.get(batchCode);
+        const cropId = Number(inv?.cropId ?? li?.cropId ?? 0);
+        const quantityKg = Number(li.quantityKg ?? li.quantity ?? 0);
+        const unitPrice = Number(li.pricePerKg ?? li.unitPrice ?? 0);
+
+        if (!cropId) throw new Error(`Missing cropId for batch ${batchCode || '(blank)'}`);
+        if (!quantityKg) throw new Error(`Missing quantity for batch ${batchCode || '(blank)'}`);
+
+        console.log('🏭 Creating shipment:', { batchCode, cropId, quantityKg, unitPrice });
+        await api.createDistributorShipmentToRetailer({
+          retailerUserId: Number(order.retailerUserId ?? order.retailerId),
+          cropId,
+          quantityKg,
+          unitPrice,
+          originLocation: inv?.location || 'Distributor Warehouse',
+          destinationLocation: order?.retailerName || 'Retailer',
+          vehicle: null,
+          expectedDelivery: order?.deliveryDate || null,
+        });
+        console.log('✅ Shipment created for batch', batchCode);
+      }
+
+      console.log('📝 Marking order SHIPPED:', order?.id);
+      await api.updateSalesOrderStatus(order.id, 'SHIPPED'); // PATCH /api/distributor/orders/{id}/status with body {status} [attached_file:1140]
+      await loadSalesOrders();
+      console.log('✅ Order marked SHIPPED and list refreshed:', order?.id);
+      alert('Shipment created and order marked SHIPPED.');
+    } catch (err) {
+      console.error('❌ Ship order failed:', err);
+      alert(`Failed to ship order: ${err.message}`);
+    }
+  };
+
+
+
+
+
+
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
       localStorage.removeItem('isDistributorAuthenticated');
@@ -242,52 +340,62 @@ const DistributorDashboard = () => {
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     }
   };
-  // Inside DistributorDashboard.jsx
   const handleCreateOrder = async (formData) => {
     try {
-      // Basic frontend validation
-      const items = (formData.products || [])
-        .filter(p => (p.productId || p.batchId || p.id) && p.quantity && p.pricePerKg)
-        .map(p => ({
-          // Prefer productId; fall back to batchCode/id if UI uses those
-          productId: p.productId ?? null,
-          batchCode: p.batchId ?? p.batchCode ?? null,
-          quantityKg: Number(p.quantity) || 0,
-          pricePerKg: Number(p.pricePerKg) || 0,
-        }));
+      setOrderError(null);
 
-      if (!formData.retailerUserId || items.length === 0) {
-        alert('Retailer and at least one valid product are required');
+      const lines = (formData?.products || [])
+        .map(p => {
+          const batchCode = (p.batchCode || p.batchId || '').trim();
+          const quantityKg = Number(p.quantityKg ?? p.quantity ?? 0);
+          const pricePerKg = Number(p.pricePerKg ?? p.unitPrice ?? p.price ?? 0);
+          if (!batchCode || !isFinite(quantityKg) || quantityKg <= 0 || !isFinite(pricePerKg) || pricePerKg <= 0) {
+            return null;
+          }
+          return { batchCode, quantityKg, pricePerKg };
+        })
+        .filter(Boolean);
+
+      if (!lines.length) {
+        setOrderError('Add at least one valid line with batch, quantity, and price.');
         return;
       }
 
       const payload = {
-        retailerUserId: formData.retailerUserId,
-        items,
-        deliveryDate: formData.deliveryDate || null,
-        notes: formData.notes || '',
-        paymentTerms: formData.paymentTerms || 'Net 30',
+        retailerUserId: Number(formData?.retailerUserId),
+        lines,
+        deliveryDate: formData?.deliveryDate || null,
+        notes: formData?.notes || '',
+        paymentTerms: formData?.paymentTerms || 'NET_30',
       };
 
+      // Prefer the typed helper so auth headers/refresh are handled consistently
       await api.createSalesOrder(payload);
+
       await loadSalesOrders();
       setIsOrderModalOpen(false);
       resetOrderForm && resetOrderForm();
     } catch (err) {
       console.error('Failed to create order', err);
+      setOrderError(err?.message || 'Failed to create order');
     }
   };
 
-
-  // Update order status
+  // Ensure statuses sent to API are uppercase
   const handleUpdateOrderStatus = async (orderId, nextStatus) => {
     try {
-      await api.updateSalesOrderStatus(orderId, nextStatus);
+      const apiStatus = String(nextStatus || '').toUpperCase(); // e.g., 'SHIPPED'
+      await api.updateSalesOrderStatus(orderId, apiStatus);
       await loadSalesOrders();
+
+      // Optional: if auto-creating shipments here, ensure all required fields are available,
+      // or move this logic to the server to resolve cropId/batch mapping reliably.
     } catch (e) {
       console.error('Failed to update order status', e);
     }
   };
+
+
 
   // Form Reset Functions
   const resetRetailerForm = () => {
@@ -313,6 +421,13 @@ const DistributorDashboard = () => {
     });
     setEditingInventory(null);
   };
+  // Inside DistributorDashboard component, near other consts and before return:
+  const safeItems = React.useMemo(() => {
+    return (inventory ?? []).filter(it => {
+      const s = String((it?.status ?? 'available')).toLowerCase();
+      return s !== 'out-of-stock' && s !== 'cancelled';
+    });
+  }, [inventory]);
 
   // Modal Functions
   const openRetailerModal = (retailer = null) => {
@@ -326,6 +441,7 @@ const DistributorDashboard = () => {
   };
 
   const openOrderModal = (order = null) => {
+    setOrderError(null);
     if (order) {
       setOrderFormData({ ...order });
       setEditingOrder(order);
@@ -467,11 +583,15 @@ const DistributorDashboard = () => {
 
     try {
       await api.addDistributorInventory({
-        batchCode: batchId,
-        quantityKg: qty,
-        unitPrice: price,
-        location: (inventoryFormData.location || '').trim() || 'Warehouse',
-      });
+           batchCode: batchId,
+           quantityKg: qty,
+           pricePerKg: price,
+           location: (inventoryFormData.location || '').trim() || 'Warehouse',
+           grade: (inventoryFormData.grade || '').trim() || null,
+           expiryDate: inventoryFormData.expiryDate || null,
+           qualityChecked: true,
+           notes: (inventoryFormData.notes || '').trim() || '',
+         });
       const inv = await api.getDistributorInventory();
       setInventory(inv.map(mapInventoryToUi));
       setIsInventoryModalOpen(false);
@@ -588,6 +708,80 @@ const DistributorDashboard = () => {
     window.URL.revokeObjectURL(url);
 
     alert(`${type.charAt(0).toUpperCase() + type.slice(1)} data exported successfully!`);
+  };
+
+  const productOptions = (Array.isArray(safeItems) ? safeItems : []).map(it => ({
+    value: String(it.id),
+    label: it.cropName ?? it.productName ?? it.product ?? 'Crop',
+    batch: it.batchId ?? it.batchCode ?? '',
+    pricePerKg: Number(it.pricePerKg ?? 0),
+    imageUrl: it.imageUrl ?? it.cropImageUrl ?? it.image ?? null,
+  }));
+
+  const formatOptionLabel = (data, { context }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <img
+        src={data.imageUrl || '/placeholder-crop.png'}
+        alt={data.label}
+        style={{
+          width: context === 'menu' ? 28 : 22,
+          height: context === 'menu' ? 28 : 22,
+          borderRadius: 6,
+          objectFit: 'cover'
+        }}
+        onError={(e) => { e.currentTarget.src = '/placeholder-crop.png'; }}
+      />
+      <div style={{ lineHeight: 1.2 }}>
+        <div style={{ fontWeight: 600 }}>{data.label}</div>
+        {!!data.batch && (
+          <div style={{ fontSize: 12, color: '#64748b' }}>{data.batch}</div>
+        )}
+      </div>
+    </div>
+  );
+
+  const OptionRow = (props) => {
+    const { data } = props;
+    return (
+      <components.Option {...props}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <img
+            src={data.imageUrl || '/placeholder-crop.png'}
+            alt={data.label}
+            style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover' }}
+            onError={(e) => { e.currentTarget.src = '/placeholder-crop.png'; }}
+          />
+          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+            <span style={{ fontWeight: 600 }}>{data.label}</span>
+            {!!data.batch && (
+              <span style={{ fontSize: 12, color: '#64748b' }}>{data.batch}</span>
+            )}
+          </div>
+        </div>
+      </components.Option>
+    );
+  };
+
+  const SingleValueRow = (props) => {
+    const { data } = props;
+    return (
+      <components.SingleValue {...props}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <img
+            src={data.imageUrl || '/placeholder-crop.png'}
+            alt={data.label}
+            style={{ width: 22, height: 22, borderRadius: 5, objectFit: 'cover' }}
+            onError={(e) => { e.currentTarget.src = '/placeholder-crop.png'; }}
+          />
+          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+            <span style={{ fontWeight: 600 }}>{data.label}</span>
+            {!!data.batch && (
+              <span style={{ fontSize: 11, color: '#94a3b8' }}>{data.batch}</span>
+            )}
+          </div>
+        </div>
+      </components.SingleValue>
+    );
   };
 
   // Menu items
@@ -1404,24 +1598,14 @@ const DistributorDashboard = () => {
                               <Edit size={14} />
                               Edit
                             </button>
+                            
                             {order.status === 'pending-approval' && (
-                              <button
-                                className="btn btn-small btn-primary"
-                                onClick={() => handleUpdateOrderStatus(order.id, 'confirmed')}
-                              >
-                                <CheckCircle size={14} />
-                                Approve
-                              </button>
+                              <>
+                                <button className="btn btn-small btn-edit" onClick={() => handleUpdateOrderStatus(order.id, 'CONFIRMED')}>Confirm</button>
+                                <button className="btn btn-small btn-edit" onClick={() => handleUpdateOrderStatus(order.id, 'CANCELLED')}>Cancel</button>
+                              </>
                             )}
-                            {order.status === 'confirmed' && (
-                              <button
-                                className="btn btn-small btn-primary"
-                                onClick={() => handleUpdateOrderStatus(order.id, 'shipped')}
-                              >
-                                <Truck size={14} />
-                                Ship
-                              </button>
-                            )}
+                      
                             <button
                               className="btn btn-small btn-delete"
                               onClick={() => deleteOrder(order.id)}
@@ -1429,6 +1613,52 @@ const DistributorDashboard = () => {
                               <Trash2 size={14} />
                               Delete
                             </button>
+                           
+                            {order.status !== 'shipped' && order.status !== 'SHIPPED' && (
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  id={`ship-btn-${order.id}`}
+                                  type="button"
+                                  className="btn btn-small btn-primary"
+                                  style={{ pointerEvents: 'auto', position: 'relative', zIndex: 2 }}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  onKeyDown={(e) => e.stopPropagation()}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    console.log('🟢 Ship clicked for order', order?.id);
+                                    handleShipOrder(order);
+                                  }}
+                                  disabled={
+                                    !(
+                                      (order?.lines && order.lines.length) ||
+                                      (order?.products && order.products.length) ||
+                                      (order?.items && order.items.length)
+                                    )
+                                  }
+                                  title={
+                                    ((order?.lines || []).length + (order?.products || []).length + (order?.items || []).length) === 0
+                                      ? 'No order lines'
+                                      : 'Ship to retailer'
+                                  }
+                                >
+                                  Ship
+                                </button>
+                              </div>
+                            )}
+
+                            {(order.products || order.lines || order.items || []).map((p, idx) => (
+                              <div key={idx} className="product-display">
+                                <div className="primary-text">
+                                  {(p.name || p.title || 'Item')} ({p.quantity ?? p.quantityKg ?? 0})
+                                </div>
+                                <div className="secondary-text">
+                                  {(p.pricePerKg ?? p.unitPrice ?? 0)} / kg
+                                </div>
+                              </div>
+                            ))}
+
+
                           </div>
                         </td>
                       </tr>
@@ -1931,16 +2161,23 @@ const DistributorDashboard = () => {
                   </label>
                   <select
                     className="form-select"
-                    value={orderFormData.retailerUserId}
-                    onChange={(e) => setOrderFormData({ ...orderFormData, retailerUserId: e.target.value })}
+                    value={orderFormData.retailerUserId ?? ''}
+                    onChange={(e) =>
+                      setOrderFormData({
+                        ...orderFormData,
+                        retailerUserId: e.target.value ? Number(e.target.value) : ''
+                      })
+                    }
                   >
                     <option value="">Choose a retailer</option>
-                    {retailers.map(retailer => (
-                      <option key={retailer.id} value={retailer.id}>
-                        {retailer.name} - {retailer.location}
+                    {(retailers || []).map(r => (
+                      <option key={r.id} value={r.id}>
+                        {r.name} - {r.email}
                       </option>
                     ))}
                   </select>
+
+
                 </div>
                 <div className="form-group">
                   <label className="form-label">
@@ -1976,51 +2213,72 @@ const DistributorDashboard = () => {
                     <Package size={16} />
                     Products *
                   </label>
+                  
                   {orderFormData.products.map((product, index) => (
                     <div key={index} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '12px', marginBottom: '12px', alignItems: 'center' }}>
-                      <select
-                        className="form-select"
-                        value={product.name}
-                        onChange={(e) => {
-                          const newProducts = [...orderFormData.products];
-                          newProducts[index].name = e.target.value;
-                          // Auto-fill price from inventory
-                          const inventoryItem = inventory.find(item => item.product === e.target.value);
-                          if (inventoryItem) {
-                            newProducts[index].pricePerKg = inventoryItem.pricePerKg;
-                          }
-                          setOrderFormData({ ...orderFormData, products: newProducts });
+                     
+                     
+                      <Select
+                        classNamePrefix="rs"
+                        placeholder="Select Product"
+                        options={productOptions}
+                        value={productOptions.find(o => String(o.value) === String(product.productId)) || null}
+                        onChange={(opt) => {
+                          if (!opt) return;
+                          setOrderFormData(prev => {
+                            const products = [...prev.products];
+                            const next = { ...(products[index] || {}) };
+                            next.productId = Number(opt.value);
+                            next.name = opt.label;
+                            next.batchCode = opt.batch || null;
+                            next.pricePerKg = Number.isFinite(opt.pricePerKg) ? opt.pricePerKg : (next.pricePerKg || 0);
+                            products[index] = next;
+                            return { ...prev, products };
+                          });
                         }}
-                      >
-                        <option value="">Select Product</option>
-                        {inventory.filter(item => item.status === 'available').map(item => (
-                          <option key={item.id} value={item.product}>
-                            {item.product} (Available: {item.quantity})
-                          </option>
-                        ))}
-                      </select>
+                        formatOptionLabel={formatOptionLabel}
+                        styles={{
+                          control: (base) => ({ ...base, minHeight: 44 }),
+                          menu: (base) => ({ ...base, zIndex: 50 })
+                        }}
+                      />
+
+
                       <input
                         type="number"
                         className="form-input"
                         placeholder="Quantity (kg)"
                         value={product.quantity}
                         onChange={(e) => {
-                          const newProducts = [...orderFormData.products];
-                          newProducts[index].quantity = e.target.value;
-                          setOrderFormData({ ...orderFormData, products: newProducts });
+                          const qty = Number(e.target.value) || 0;
+                          setOrderFormData(prev => {
+                            const products = [...prev.products];
+                            const next = { ...(products[index] || {}) };
+                            next.quantity = e.target.value;     
+                            next.quantityKg = qty;              
+                            products[index] = next;
+                            return { ...prev, products };
+                          });
                         }}
                       />
+
                       <input
                         type="number"
                         className="form-input"
                         placeholder="Price per kg"
                         value={product.pricePerKg}
                         onChange={(e) => {
-                          const newProducts = [...orderFormData.products];
-                          newProducts[index].pricePerKg = e.target.value;
-                          setOrderFormData({ ...orderFormData, products: newProducts });
+                          const price = Number(e.target.value) || 0;
+                          setOrderFormData(prev => {
+                            const products = [...prev.products];
+                            const next = { ...(products[index] || {}) };
+                            next.pricePerKg = price;
+                            products[index] = next;
+                            return { ...prev, products };
+                          });
                         }}
                       />
+
                       {orderFormData.products.length > 1 && (
                         <button
                           type="button"
@@ -2085,7 +2343,7 @@ const DistributorDashboard = () => {
                 className="btn btn-primary"
                 onClick={() => handleCreateOrder(orderFormData)}
               >
-                {editingOrder ? 'Update Order' : 'Create Order'}
+                Create Order
               </button>
             </div>
           </div>

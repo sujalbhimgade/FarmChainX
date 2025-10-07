@@ -3,7 +3,7 @@ from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-# Load environment variables from .env
+
 load_dotenv()
 
 ROBOFLOW_API_KEY = os.getenv("ROBOFLOW_API_KEY")
@@ -11,7 +11,6 @@ MODEL_ID = os.getenv("ROBOFLOW_MODEL_ID") or "fruit-ripeness-f8ptq/1"
 
 app = Flask(__name__)
 
-# CORS for Vite dev server (localhost:5173)
 CORS(app, resources={
     r"/api/*": {
         "origins": ["http://localhost:5173", "http://127.0.0.1:5173"],
@@ -24,7 +23,6 @@ CORS(app, resources={
 def health():
     return {"status": "ok"}, 200
 
-# Use @app.route with methods=['OPTIONS'] (works on all Flask versions)
 @app.route("/api/ai/ripeness", methods=["OPTIONS"])
 def ripeness_options():
     resp = make_response("", 204)
@@ -46,7 +44,6 @@ def ripeness():
         if storage is None:
             return {"error": "form-data file missing. Use field name 'image' (or 'file')."}, 400
 
-        # Lazy import so server starts even if libs not installed yet
         from PIL import Image
         from inference_sdk import InferenceHTTPClient, InferenceConfiguration
 
@@ -67,7 +64,7 @@ def ripeness():
         with client.use_configuration(config):
             result = client.infer(pil_img, model_id=MODEL_ID)
 
-        # Summarize detections
+        
         summary = {"ripe": 0, "unripe": 0, "overripe": 0}
         for p in result.get("predictions", []):
             cls = (p.get("class") or "").lower()
@@ -84,5 +81,4 @@ def ripeness():
         return {"error": str(e)}, 500
 
 if __name__ == "__main__":
-    # Keep port 5000 to match your frontend
     app.run(host="0.0.0.0", port=5000, debug=True)

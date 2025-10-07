@@ -40,6 +40,7 @@ import {
 import QRCode from 'react-qr-code';
 import './RetailerDashboard.css';
 import logo from './assets/farmchainxLogo.png';
+import api from './conc/api';
 
 
 const RetailerDashboard = () => {
@@ -48,8 +49,6 @@ const RetailerDashboard = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('All Status');
     const [typeFilter, setTypeFilter] = useState('All Types');
-
-    // Modal states
     const [isProductModalOpen, setIsProductModalOpen] = useState(false);
     const [isShipmentModalOpen, setIsShipmentModalOpen] = useState(false);
     const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
@@ -57,8 +56,8 @@ const RetailerDashboard = () => {
     const [qrModalProduct, setQrModalProduct] = useState(null);
     const [viewModalData, setViewModalData] = useState(null);
     const [editingItem, setEditingItem] = useState(null);
+    const [apiUnavailable, setApiUnavailable] = useState({ inventory: false, shipments: false });
 
-    // Form data states
     const [productData, setProductData] = useState({
         productName: '',
         category: '',
@@ -86,6 +85,7 @@ const RetailerDashboard = () => {
 
     const [saleData, setSaleData] = useState({
         productName: '',
+        batchCode: '',
         quantity: '',
         unitPrice: '',
         customerName: '',
@@ -104,167 +104,12 @@ const RetailerDashboard = () => {
         status: 'Paid'
     });
 
-    // Sample data for retailer operations
-    const [inventory, setInventory] = useState([
-        {
-            id: 1,
-            productName: 'Organic Rice',
-            category: 'Grains',
-            supplier: 'Green Valley Farm',
-            currentStock: 850,
-            reorderLevel: 100,
-            unitPrice: 85,
-            lastRestocked: '2025-09-20',
-            expiryDate: '2025-12-20',
-            status: 'In Stock',
-            batchNumber: 'ORG-RICE-2024-001',
-            quality: 'Premium'
-        },
-        {
-            id: 2,
-            productName: 'Fresh Tomatoes',
-            category: 'Vegetables',
-            supplier: 'Sunshine Farms',
-            currentStock: 25,
-            reorderLevel: 50,
-            unitPrice: 65,
-            lastRestocked: '2025-09-22',
-            expiryDate: '2025-09-28',
-            status: 'Low Stock',
-            batchNumber: 'TOMATO-2024-015',
-            quality: 'Grade A'
-        },
-        {
-            id: 3,
-            productName: 'Premium Wheat',
-            category: 'Grains',
-            supplier: 'Golden Fields Co.',
-            currentStock: 0,
-            reorderLevel: 75,
-            unitPrice: 72,
-            lastRestocked: '2025-09-15',
-            expiryDate: '2025-11-30',
-            status: 'Out of Stock',
-            batchNumber: 'WHT-PREM-2024-008',
-            quality: 'Premium'
-        }
-    ]);
+    const [inventory, setInventory] = useState([]);
+    const [receivedShipments, setReceivedShipments] = useState([]);
+    const [sales, setSales] = useState([]);
+    const [expenses, setExpenses] = useState([]);
 
-    const [receivedShipments, setReceivedShipments] = useState([
-        {
-            id: 1,
-            shipmentId: 'SHP-2024-001',
-            supplier: 'Green Valley Farm',
-            products: [
-                { name: 'Organic Rice', quantity: 500, unit: 'kg' },
-                { name: 'Brown Rice', quantity: 300, unit: 'kg' }
-            ],
-            totalValue: 42500,
-            receivedDate: '2025-09-20',
-            expectedDate: '2025-09-20',
-            status: 'Received',
-            qualityCheck: 'Passed',
-            documents: ['Invoice', 'Quality Certificate', 'Transport Receipt'],
-            receivedBy: 'John Doe',
-            notes: 'All products in excellent condition'
-        },
-        {
-            id: 2,
-            shipmentId: 'SHP-2024-002',
-            supplier: 'Sunshine Farms',
-            products: [
-                { name: 'Fresh Tomatoes', quantity: 200, unit: 'kg' },
-                { name: 'Bell Peppers', quantity: 150, unit: 'kg' }
-            ],
-            totalValue: 22750,
-            receivedDate: '2025-09-22',
-            expectedDate: '2025-09-21',
-            status: 'Received',
-            qualityCheck: 'Passed',
-            documents: ['Invoice', 'Delivery Note'],
-            receivedBy: 'Jane Smith',
-            notes: 'Slight delay but quality maintained'
-        },
-        {
-            id: 3,
-            shipmentId: 'SHP-2024-003',
-            supplier: 'Mountain Harvest',
-            products: [
-                { name: 'Organic Apples', quantity: 300, unit: 'kg' },
-                { name: 'Fresh Carrots', quantity: 250, unit: 'kg' }
-            ],
-            totalValue: 38500,
-            receivedDate: null,
-            expectedDate: '2025-09-25',
-            status: 'In Transit',
-            qualityCheck: 'Pending',
-            documents: ['Purchase Order'],
-            receivedBy: null,
-            notes: 'Expected arrival tomorrow'
-        }
-    ]);
-
-    const [sales, setSales] = useState([
-        {
-            id: 1,
-            productName: 'Organic Rice',
-            quantity: 50,
-            unitPrice: 95,
-            totalAmount: 4750,
-            customerName: 'Local Restaurant Chain',
-            saleDate: '2025-09-23',
-            paymentStatus: 'Paid',
-            deliveryStatus: 'Delivered'
-        },
-        {
-            id: 2,
-            productName: 'Fresh Tomatoes',
-            quantity: 25,
-            unitPrice: 75,
-            totalAmount: 1875,
-            customerName: 'City Grocery Store',
-            saleDate: '2025-09-22',
-            paymentStatus: 'Paid',
-            deliveryStatus: 'Delivered'
-        }
-    ]);
-
-    const [expenses, setExpenses] = useState([
-        {
-            id: 1,
-            category: 'Inventory Purchase',
-            description: 'Organic Rice - Batch ORG-RICE-2024-001',
-            amount: 42500,
-            date: '2025-09-20',
-            supplier: 'Green Valley Farm',
-            paymentMethod: 'Bank Transfer',
-            status: 'Paid'
-        },
-        {
-            id: 2,
-            category: 'Transportation',
-            description: 'Delivery charges for September shipments',
-            amount: 5500,
-            date: '2025-09-22',
-            supplier: 'FastTrack Logistics',
-            paymentMethod: 'Cash',
-            status: 'Paid'
-        }
-    ]);
-
-    // Menu items for retailer
-    const menuItems = [
-        { id: 'dashboard', label: 'Dashboard', icon: Home },
-        { id: 'inventory', label: 'Inventory', icon: Package },
-        { id: 'shipments', label: 'Received Shipments', icon: TruckIcon },
-        { id: 'sales', label: 'Sales', icon: ShoppingCart },
-        { id: 'expenses', label: 'Expenses', icon: DollarSign },
-        { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-        { id: 'calendar', label: 'Calendar', icon: Calendar },
-        { id: 'settings', label: 'Settings', icon: Settings }
-    ];
-
-    // CRUD Functions for Products/Inventory
+    // ADD near other handlers
     const addProduct = () => {
         setEditingItem(null);
         setProductData({
@@ -276,56 +121,11 @@ const RetailerDashboard = () => {
             unitPrice: '',
             expiryDate: '',
             batchNumber: '',
-            quality: 'Premium'
+            quality: 'Premium',
         });
         setIsProductModalOpen(true);
     };
 
-    const editProduct = (product) => {
-        setEditingItem(product);
-        setProductData({
-            productName: product.productName,
-            category: product.category,
-            supplier: product.supplier,
-            currentStock: product.currentStock,
-            reorderLevel: product.reorderLevel,
-            unitPrice: product.unitPrice,
-            expiryDate: product.expiryDate,
-            batchNumber: product.batchNumber,
-            quality: product.quality
-        });
-        setIsProductModalOpen(true);
-    };
-
-    const saveProduct = () => {
-        const newProduct = {
-            ...productData,
-            id: editingItem ? editingItem.id : Date.now(),
-            currentStock: parseInt(productData.currentStock),
-            reorderLevel: parseInt(productData.reorderLevel),
-            unitPrice: parseFloat(productData.unitPrice),
-            lastRestocked: new Date().toISOString().split('T')[0],
-            status: parseInt(productData.currentStock) > parseInt(productData.reorderLevel) ? 'In Stock' :
-                parseInt(productData.currentStock) > 0 ? 'Low Stock' : 'Out of Stock'
-        };
-
-        if (editingItem) {
-            setInventory(inventory.map(item => item.id === editingItem.id ? newProduct : item));
-        } else {
-            setInventory([...inventory, newProduct]);
-        }
-
-        setIsProductModalOpen(false);
-        setEditingItem(null);
-    };
-
-    const deleteProduct = (id) => {
-        if (window.confirm('Are you sure you want to delete this product?')) {
-            setInventory(inventory.filter(item => item.id !== id));
-        }
-    };
-
-    // CRUD Functions for Shipments
     const addShipment = () => {
         setEditingItem(null);
         setShipmentData({
@@ -338,169 +138,29 @@ const RetailerDashboard = () => {
             status: 'In Transit',
             qualityCheck: 'Pending',
             receivedBy: '',
-            notes: ''
+            notes: '',
         });
         setIsShipmentModalOpen(true);
     };
 
-    const editShipment = (shipment) => {
-        setEditingItem(shipment);
-        setShipmentData({
-            shipmentId: shipment.shipmentId,
-            supplier: shipment.supplier,
-            products: shipment.products.map(p => `${p.name}: ${p.quantity} ${p.unit}`).join(', '),
-            totalValue: shipment.totalValue,
-            expectedDate: shipment.expectedDate,
-            receivedDate: shipment.receivedDate || '',
-            status: shipment.status,
-            qualityCheck: shipment.qualityCheck,
-            receivedBy: shipment.receivedBy || '',
-            notes: shipment.notes
-        });
-        setIsShipmentModalOpen(true);
-    };
-
-    const saveShipment = () => {
-        const newShipment = {
-            ...shipmentData,
-            id: editingItem ? editingItem.id : Date.now(),
-            totalValue: parseFloat(shipmentData.totalValue),
-            products: shipmentData.products.split(',').map(p => {
-                const parts = p.trim().split(':');
-                const [quantity, unit] = parts[1].trim().split(' ');
-                return { name: parts[0].trim(), quantity: parseInt(quantity), unit };
-            }),
-            documents: editingItem ? editingItem.documents : ['Purchase Order']
-        };
-
-        if (editingItem) {
-            setReceivedShipments(receivedShipments.map(item => item.id === editingItem.id ? newShipment : item));
-        } else {
-            setReceivedShipments([...receivedShipments, newShipment]);
-        }
-
-        setIsShipmentModalOpen(false);
-        setEditingItem(null);
-    };
-
-    const deleteShipment = (id) => {
-        if (window.confirm('Are you sure you want to delete this shipment record?')) {
-            setReceivedShipments(receivedShipments.filter(item => item.id !== id));
-        }
-    };
-
-    // CRUD Functions for Sales
     const addSale = () => {
         setEditingItem(null);
         setSaleData({
             productName: '',
+            batchCode: '',
             quantity: '',
             unitPrice: '',
             customerName: '',
             saleDate: '',
             paymentStatus: 'Paid',
-            deliveryStatus: 'Delivered'
+            deliveryStatus: 'Delivered',
         });
         setIsSaleModalOpen(true);
     };
 
-    const editSale = (sale) => {
-        setEditingItem(sale);
-        setSaleData({
-            productName: sale.productName,
-            quantity: sale.quantity,
-            unitPrice: sale.unitPrice,
-            customerName: sale.customerName,
-            saleDate: sale.saleDate,
-            paymentStatus: sale.paymentStatus,
-            deliveryStatus: sale.deliveryStatus
-        });
-        setIsSaleModalOpen(true);
-    };
-
-    const saveSale = () => {
-        const newSale = {
-            ...saleData,
-            id: editingItem ? editingItem.id : Date.now(),
-            quantity: parseInt(saleData.quantity),
-            unitPrice: parseFloat(saleData.unitPrice),
-            totalAmount: parseInt(saleData.quantity) * parseFloat(saleData.unitPrice)
-        };
-
-        if (editingItem) {
-            setSales(sales.map(item => item.id === editingItem.id ? newSale : item));
-        } else {
-            setSales([...sales, newSale]);
-        }
-
-        setIsSaleModalOpen(false);
-        setEditingItem(null);
-    };
-
-    const deleteSale = (id) => {
-        if (window.confirm('Are you sure you want to delete this sale record?')) {
-            setSales(sales.filter(item => item.id !== id));
-        }
-    };
-
-    // CRUD Functions for Expenses
-    const addExpense = () => {
-        setEditingItem(null);
-        setExpenseData({
-            category: '',
-            description: '',
-            amount: '',
-            date: '',
-            supplier: '',
-            paymentMethod: 'Bank Transfer',
-            status: 'Paid'
-        });
-        setIsExpenseModalOpen(true);
-    };
-
-    const editExpense = (expense) => {
-        setEditingItem(expense);
-        setExpenseData({
-            category: expense.category,
-            description: expense.description,
-            amount: expense.amount,
-            date: expense.date,
-            supplier: expense.supplier,
-            paymentMethod: expense.paymentMethod,
-            status: expense.status
-        });
-        setIsExpenseModalOpen(true);
-    };
-
-    const saveExpense = () => {
-        const newExpense = {
-            ...expenseData,
-            id: editingItem ? editingItem.id : Date.now(),
-            amount: parseFloat(expenseData.amount)
-        };
-
-        if (editingItem) {
-            setExpenses(expenses.map(item => item.id === editingItem.id ? newExpense : item));
-        } else {
-            setExpenses([...expenses, newExpense]);
-        }
-
-        setIsExpenseModalOpen(false);
-        setEditingItem(null);
-    };
-
-    const deleteExpense = (id) => {
-        if (window.confirm('Are you sure you want to delete this expense record?')) {
-            setExpenses(expenses.filter(item => item.id !== id));
-        }
-    };
-
-    // View functions
     const viewDetails = (item, type) => {
         setViewModalData({ ...item, type });
     };
-
-    // Input change handlers
     const handleProductInputChange = (e) => {
         const { name, value } = e.target;
         setProductData(prev => ({ ...prev, [name]: value }));
@@ -521,7 +181,153 @@ const RetailerDashboard = () => {
         setExpenseData(prev => ({ ...prev, [name]: value }));
     };
 
-    // Filter functions
+    const menuItems = [
+        { id: 'dashboard', label: 'Dashboard', icon: Home },
+        { id: 'inventory', label: 'Inventory', icon: Package },
+        { id: 'shipments', label: 'Received Shipments', icon: TruckIcon },
+        { id: 'sales', label: 'Sales', icon: ShoppingCart },
+        //{ id: 'expenses', label: 'Expenses', icon: DollarSign },
+        { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+        // { id: 'calendar', label: 'Calendar', icon: Calendar },
+        { id: 'settings', label: 'Settings', icon: Settings }
+    ];
+
+
+    // handleCreateProduct
+    const handleCreateProduct = async () => {
+        const payload = {
+            productName: productData.productName?.trim(),
+            category: productData.category || null,
+            supplier: productData.supplier || null,
+            currentStock: Number(productData.currentStock || 0),
+            reorderLevel: Number(productData.reorderLevel || 0),
+            unitPrice: Number(productData.unitPrice || 0),
+            expiryDate: productData.expiryDate || null,
+            batchCode: productData.batchNumber || null,
+            quality: productData.quality || null,
+            notes: productData.notes || null,
+        };
+
+        try {
+            const saved = await api.addInventory(payload);
+            const row = {
+                id: saved?.id ?? Date.now(),
+                productName: saved?.productName ?? payload.productName,
+                category: saved?.category ?? '-',
+                supplier: saved?.supplier ?? '-',
+                currentStock: Number(saved?.currentStock ?? payload.currentStock ?? 0),
+                reorderLevel: Number(saved?.reorderLevel ?? payload.reorderLevel ?? 0),
+                unitPrice: Number(saved?.unitPrice ?? payload.unitPrice ?? 0),
+                lastRestocked: saved?.lastRestocked ?? new Date().toISOString().slice(0, 10),
+                expiryDate: saved?.expiryDate ?? payload.expiryDate ?? '-',
+                status:
+                    (Number(saved?.currentStock ?? payload.currentStock ?? 0) <= 0)
+                        ? 'Out of Stock'
+                        : (Number(saved?.currentStock ?? payload.currentStock ?? 0) <= Number(saved?.reorderLevel ?? payload.reorderLevel ?? 0)
+                            ? 'Low Stock'
+                            : 'In Stock'),
+                batchNumber: saved?.batchCode ?? payload.batchCode ?? payload.batchNumber ?? '-',
+                quality: saved?.quality ?? payload.quality ?? 'Standard',
+                notes: saved?.notes ?? '',
+            };
+            setInventory(prev => [row, ...prev]);
+            setIsProductModalOpen(false);
+            setEditingItem(null);
+        } catch (e) {
+            console.error('Failed to create inventory item', e);
+        }
+    };
+
+
+    const handleRecordShipment = async () => {
+  const text = String(shipmentData.shipmentId || '').trim();
+  const resolvedId = /^\d+$/.test(text)
+    ? Number(text)
+    : (receivedShipments.find(x => String(x.shipmentId) === text)?.id);
+
+  if (!resolvedId || Number.isNaN(resolvedId)) {
+    alert('Enter a valid shipment id (numeric or SH- code that matches the list).');
+    return;
+  }
+
+  const ack = await api.retailerReceiveShipment({
+    shipmentId: resolvedId,
+    currentLocation: shipmentData.currentLocation || 'Retailer Warehouse',
+    temperatureC: shipmentData.temperatureC ? Number(shipmentData.temperatureC) : 0,
+    humidity: shipmentData.humidity ? Number(shipmentData.humidity) : 0,
+  });
+
+  setReceivedShipments(prev => {
+    const idx = prev.findIndex(s => s.id === resolvedId || String(s.shipmentId) === String(text));
+    if (idx >= 0) {
+      const copy = [...prev];
+      copy[idx] = {
+        ...copy[idx],
+        status: 'Received',
+        receivedDate: new Date().toISOString().slice(0, 10),
+      };
+      return copy;
+    }
+    return [{
+      id: resolvedId,
+      shipmentId: text || String(resolvedId),
+      supplier: shipmentData.supplier || '-',
+      products: [],
+      totalValue: 0,
+      expectedDate: '-',
+      receivedDate: new Date().toISOString().slice(0, 10),
+      status: 'Received',
+      qualityCheck: 'Passed',
+      receivedBy: shipmentData.receivedBy || '',
+      notes: '',
+      documents: [],
+    }, ...prev];
+  });
+
+  setIsShipmentModalOpen(false);
+  setEditingItem(null);
+};
+
+
+
+
+
+    const handleCreateSale = async () => {
+        const qty = Number(saleData.quantity || 0);
+        const price = Number(saleData.unitPrice || 0);
+        const batchCode = String(saleData.batchCode || '').trim();
+        if (!batchCode || qty <= 0 || price <= 0) {
+            alert('Batch code, quantity, and unit price are required.');
+            return;
+        }
+        const payload = { batchCode, quantityKg: qty, totalAmount: qty * price, productName: saleData.productName || null };
+
+        try {
+            const saved = await api.addSale(payload);
+            const q = Number(saved?.quantityKg ?? qty);
+            const total = Number(saved?.totalAmount ?? qty * price);
+            const unit = price || (q > 0 ? Number((total / q).toFixed(2)) : null);
+
+            const row = {
+                id: saved?.id ?? Date.now(),
+                productName: saved?.productName ?? saved?.batchCode ?? saleData.productName ?? batchCode,
+                batchCode: saved?.batchCode ?? batchCode,
+                quantity: q,
+                unitPrice: unit,
+                totalAmount: total,
+                customerName: saleData.customerName || '',
+                saleDate: saved?.createdAt ?? new Date().toISOString(),
+                paymentStatus: saved?.paymentStatus ?? 'Paid',
+                deliveryStatus: saved?.deliveryStatus ?? 'Delivered',
+            };
+            setSales(prev => [row, ...prev]);
+            setIsSaleModalOpen(false);
+            setEditingItem(null);
+        } catch (e) {
+            console.error('Failed to record sale', e);
+        }
+    };
+
     const getFilteredInventory = () => {
         return inventory.filter(item => {
             const matchesSearch = item.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -562,8 +368,6 @@ const RetailerDashboard = () => {
             return matchesSearch && matchesStatus;
         });
     };
-
-    // Dashboard statistics
     const stats = {
         totalProducts: inventory.length,
         lowStockItems: inventory.filter(item => item.currentStock <= item.reorderLevel).length,
@@ -571,7 +375,152 @@ const RetailerDashboard = () => {
         pendingShipments: receivedShipments.filter(shipment => shipment.status === 'In Transit').length
     };
 
-    // Add table scroll detection useEffect
+    const loadRetailSales = async () => {
+        const list = await api.request('/retailer/sales', { method: 'GET' });
+        const rows = (Array.isArray(list) ? list : []).map(s => ({
+            id: s.id,
+            productName: s.productName || s.batchCode,  // prefer name
+            batchCode: s.batchCode,
+            quantity: s.quantityKg,
+            unitPrice: null,
+            totalAmount: s.totalAmount,
+            customerName: '',
+            saleDate: s.createdAt,
+            paymentStatus: 'Paid',
+            deliveryStatus: 'Delivered',
+        }));
+        setSales(rows);
+    };
+
+    // // Fetch retailer inventory
+    // const loadInventory = async () => {
+    //     try {
+    //         const items = await api.request('/retailer/inventory', { method: 'GET' });
+    //         const rows = (Array.isArray(items) ? items : []).map(it => ({
+    //             id: it.id,
+    //             productName: it.productName || it.product,        // prefer name
+    //             category: it.category || '-',
+    //             supplier: it.supplier || '-',
+    //             currentStock: it.currentStock ?? it.availableQuantity ?? 0,
+    //             reorderLevel: it.reorderLevel ?? 0,
+    //             unitPrice: it.unitPrice ?? null,
+    //             lastRestocked: it.lastRestocked || it.receivedDate || '-',
+    //             expiryDate: it.expiryDate || '-',
+    //             status: it.status || (Number(it.currentStock ?? 0) <= 0 ? 'Out of Stock' : (Number(it.currentStock ?? 0) <= Number(it.reorderLevel ?? 0) ? 'Low Stock' : 'In Stock')),
+    //             batchNumber: it.batchCode || it.batchId || '-',
+    //             quality: it.quality || it.grade || 'Standard',
+    //             notes: it.notes || '',
+    //         }));
+    //         setInventory(rows);
+    //     } catch (e) {
+    //         console.error('Failed to load inventory', e);
+    //     }
+    // };
+
+    // // Fetch shipments received
+    // const loadShipments = async () => {
+    //     try {
+    //         const list = await api.request('/retailer/shipments', { method: 'GET' });
+    //         const rows = (Array.isArray(list) ? list : []).map(s => ({
+    //             id: s.id,
+    //             shipmentId: s.shipmentId || s.id,
+    //             supplier: s.distributorName || s.supplier || '-',
+    //             products: s.products || [],           // assume backend returns array of {name,quantity,unit}
+    //             totalValue: s.totalValue ?? s.totalAmount ?? 0,
+    //             expectedDate: s.expectedDelivery || s.expectedDate || '-',
+    //             receivedDate: s.receivedDate || null,
+    //             status: s.status || (s.receivedDate ? 'Received' : 'In Transit'),
+    //             qualityCheck: s.qualityCheck || 'Pending',
+    //             receivedBy: s.receivedBy || '',
+    //             notes: s.notes || '',
+    //             documents: s.documents || [],
+    //         }));
+    //         setReceivedShipments(rows);
+    //     } catch (e) {
+    //         console.error('Failed to load shipments', e);
+    //     }
+    // 
+
+    // RetailerDashboard.jsx
+
+    // Add these if missing, and call in useEffect once.
+    const loadInventory = async () => {
+        try {
+            const items = await api.getInventory();
+            const rows = (Array.isArray(items) ? items : []).map(it => ({
+                id: it.id,
+                productName: it.productName || it.product || '-',
+                category: it.category || '-',
+                supplier: it.supplier || '-',
+                currentStock: it.currentStock ?? it.availableQuantity ?? 0,
+                reorderLevel: it.reorderLevel ?? 0,
+                unitPrice: it.unitPrice ?? null,
+                lastRestocked: it.lastRestocked || it.receivedDate || '-',
+                expiryDate: it.expiryDate || '-',
+                status: it.status || (Number(it.currentStock ?? 0) <= 0 ? 'Out of Stock' :
+                    (Number(it.currentStock ?? 0) <= Number(it.reorderLevel ?? 0) ? 'Low Stock' : 'In Stock')),
+                batchNumber: it.batchCode || it.batchId || '-',
+                quality: it.quality || it.grade || 'Standard',
+                notes: it.notes || '',
+            }));
+            setInventory(rows);
+        } catch (e) {
+            console.error('Failed to load inventory', e);
+        }
+    };
+
+    const loadShipments = async () => {
+        try {
+            const list = await api.getShipments();
+            const rows = (Array.isArray(list) ? list : []).map(s => ({
+                id: s.id,
+                shipmentId: s.shipmentId || s.id,
+                supplier: s.distributorName || s.supplier || '-',
+                products: s.products || [],
+                totalValue: s.totalValue ?? s.totalAmount ?? 0,
+                expectedDate: s.expectedDelivery || s.expectedDate || '-',
+                receivedDate: s.receivedDate || null,
+                status: s.status || (s.receivedDate ? 'Received' : 'In Transit'),
+                qualityCheck: s.qualityCheck || 'Pending',
+                receivedBy: s.receivedBy || '',
+                notes: s.notes || '',
+                documents: s.documents || [],
+            }));
+            setReceivedShipments(rows);
+        } catch (e) {
+            console.error('Failed to load shipments', e);
+        }
+    };
+
+    const loadSales = async () => {
+        try {
+            const list = await api.getSales();
+            const rows = (Array.isArray(list) ? list : []).map(s => {
+                const q = Number(s.quantityKg ?? s.quantity ?? 0);
+                const total = Number(s.totalAmount ?? 0);
+                const unit = s.unitPrice ?? (q > 0 && isFinite(total / q) ? Number((total / q).toFixed(2)) : null);
+                return {
+                    id: s.id,
+                    productName: s.productName || s.batchCode || '-',
+                    batchCode: s.batchCode || null,
+                    quantity: q,
+                    unitPrice: unit,
+                    totalAmount: total,
+                    customerName: s.customerName || '',
+                    saleDate: s.createdAt || s.saleDate || '-',
+                    paymentStatus: s.paymentStatus || 'Paid',
+                    deliveryStatus: s.deliveryStatus || 'Delivered',
+                };
+            });
+            setSales(rows);
+        } catch (e) {
+            console.error('Failed to load sales', e);
+        }
+    };
+
+    useEffect(() => { loadInventory(); loadShipments(); loadSales(); }, []);
+
+
     useEffect(() => {
         const tableContainers = document.querySelectorAll('.table-container');
 
@@ -608,7 +557,7 @@ const RetailerDashboard = () => {
 
     const renderDashboard = () => (
         <div className="dashboard-content">
-            {/* Stats Grid */}
+
             <div className="stats-grid">
                 <div className="stat-card">
                     <div className="stat-icon">
@@ -648,7 +597,7 @@ const RetailerDashboard = () => {
                 </div>
             </div>
 
-            {/* Dashboard Grid */}
+            { }
             <div className="dashboard-grid">
                 <div className="dashboard-card">
                     <h3>Recent Inventory Updates</h3>
@@ -1263,11 +1212,11 @@ const RetailerDashboard = () => {
 
     return (
         <div className="retailer-dashboard">
-            {/* Sidebar */}
+            { }
             <div className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
                 <div className="sidebar-header">
                     <div className="logo-section">
-                        {/* FIXED: Proper logo image integration */}
+                        { }
                         <img src={logo} alt="FarmChainX Logo" className="sidebar-logo" />
                         <div className="logo-text">FarmChainX</div>
                     </div>
@@ -1303,9 +1252,9 @@ const RetailerDashboard = () => {
                 </div>
             </div>
 
-            {/* Main Content */}
+            { }
             <div className="main-content">
-                {/* Top Header */}
+                { }
                 <div className="top-header">
                     <div className="header-left">
                         <h1>{menuItems.find(item => item.id === activeSection)?.label || 'Dashboard'}</h1>
@@ -1327,7 +1276,7 @@ const RetailerDashboard = () => {
                     </div>
                 </div>
 
-                {/* Content Area */}
+                { }
                 <div className="content-area">
                     <div className="container">
                         {renderContent()}
@@ -1335,7 +1284,7 @@ const RetailerDashboard = () => {
                 </div>
             </div>
 
-            {/* Product Modal */}
+            { }
             {isProductModalOpen && (
                 <div className="modal-overlay" onClick={() => setIsProductModalOpen(false)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -1486,7 +1435,7 @@ const RetailerDashboard = () => {
                             <button className="btn btn-secondary" onClick={() => setIsProductModalOpen(false)}>
                                 Cancel
                             </button>
-                            <button className="btn btn-primary" onClick={saveProduct}>
+                            <button className="btn btn-primary" onClick={handleCreateProduct}>
                                 <Save size={16} />
                                 {editingItem ? 'Update Product' : 'Add Product'}
                             </button>
@@ -1495,7 +1444,7 @@ const RetailerDashboard = () => {
                 </div>
             )}
 
-            {/* Shipment Modal */}
+            { }
             {isShipmentModalOpen && (
                 <div className="modal-overlay" onClick={() => setIsShipmentModalOpen(false)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -1656,7 +1605,7 @@ const RetailerDashboard = () => {
                             <button className="btn btn-secondary" onClick={() => setIsShipmentModalOpen(false)}>
                                 Cancel
                             </button>
-                            <button className="btn btn-primary" onClick={saveShipment}>
+                            <button className="btn btn-primary" onClick={handleRecordShipment}>
                                 <Save size={16} />
                                 {editingItem ? 'Update Shipment' : 'Record Shipment'}
                             </button>
@@ -1665,7 +1614,7 @@ const RetailerDashboard = () => {
                 </div>
             )}
 
-            {/* Sale Modal */}
+            { }
             {isSaleModalOpen && (
                 <div className="modal-overlay" onClick={() => setIsSaleModalOpen(false)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -1689,6 +1638,20 @@ const RetailerDashboard = () => {
                                         value={saleData.productName}
                                         onChange={handleSaleInputChange}
                                         placeholder="Enter product name"
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        <Package size={16} />
+                                        Batch Code*
+                                    </label>
+                                    <input
+                                        name="batchCode"
+                                        className="form-input"
+                                        placeholder="Enter Batch Code "
+                                        value={saleData.batchCode || ''}
+                                        onChange={handleSaleInputChange}
                                     />
                                 </div>
                                 <div className="form-group">
@@ -1790,7 +1753,7 @@ const RetailerDashboard = () => {
                             <button className="btn btn-secondary" onClick={() => setIsSaleModalOpen(false)}>
                                 Cancel
                             </button>
-                            <button className="btn btn-primary" onClick={saveSale}>
+                            <button className="btn btn-primary" onClick={handleCreateSale}>
                                 <Save size={16} />
                                 {editingItem ? 'Update Sale' : 'Record Sale'}
                             </button>
@@ -1799,7 +1762,7 @@ const RetailerDashboard = () => {
                 </div>
             )}
 
-            {/* Expense Modal */}
+            { }
             {isExpenseModalOpen && (
                 <div className="modal-overlay" onClick={() => setIsExpenseModalOpen(false)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -1936,7 +1899,7 @@ const RetailerDashboard = () => {
                 </div>
             )}
 
-            {/* QR Code Modal */}
+            { }
             {qrModalProduct && (
                 <div className="modal-overlay" onClick={() => setQrModalProduct(null)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
@@ -1988,7 +1951,7 @@ const RetailerDashboard = () => {
                 </div>
             )}
 
-            {/* View Details Modal */}
+            { }
             {viewModalData && (
                 <div className="modal-overlay" onClick={() => setViewModalData(null)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>

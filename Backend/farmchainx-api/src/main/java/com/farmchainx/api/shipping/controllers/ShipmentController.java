@@ -6,7 +6,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
+import com.farmchainx.api.shipping.dto.DistributorToRetailerCreateRequest;
 import java.util.List;
 
 @RestController
@@ -42,4 +42,11 @@ public class ShipmentController {
   public ResponseEntity<ShipmentResponse> updateStatus(@PathVariable Long id, @RequestBody @Valid ShipmentUpdateRequest req) {
     return ResponseEntity.ok(service.updateStatus(id, req));
   }
+  
+  @PostMapping("/to-retailer")
+  @PreAuthorize("hasRole('DISTRIBUTOR')")
+  public ResponseEntity<ShipmentResponse> createToRetailer(@RequestBody @Valid DistributorToRetailerCreateRequest req) {
+      return ResponseEntity.ok(service.createToRetailer(req));
+  }
+
 }

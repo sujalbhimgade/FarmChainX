@@ -33,10 +33,10 @@ const CropShowcase = () => {
                 farmer: dto.farmName || '—',
                 image: dto.image_url || '../src/assets/wheat.jpg',
                 planting_date: dto.plantedDate || '—',
-                harvest_date: dto.harvestDate || '—',
+                harvestDate: dto.harvestDate || '—',
                 growth_stage: dto.currentStage || '—',
                 certification: dto.certification || '—',
-                quality_score: dto.qualityScore ?? 0,
+                quality_score: dto.quality ?? 0,
                 temperature: dto.temperature || '—',
                 humidity: dto.humidity || '—',
                 location: dto.contactAddress || '—',
@@ -185,7 +185,7 @@ const CropShowcase = () => {
                         <i className="fas fa-clock"></i>
                         <div>
                             <h4>Harvested</h4>
-                            <p>{cropData.harvest_date}</p>
+                            <p>{cropData.harvestDate}</p>
                         </div>
                     </div>
                     <div className="stat-item">
@@ -290,74 +290,6 @@ const CropShowcase = () => {
 
                             </div>
                         )}
-
-                        {/* {activeTab === 'quality' && (
-                            <div className="quality-content">
-                                <div className="quality-metrics">
-                                    <div className="metric">
-                                        <div className="progress-ring">
-                                            <div className="progress-value">92%</div>
-                                        </div>
-                                        <span>Nutrition</span>
-                                    </div>
-                                    <div className="metric">
-                                        <div className="progress-ring">
-                                            <div className="progress-value">98%</div>
-                                        </div>
-                                        <span>Freshness</span>
-                                    </div>
-                                    <div className="metric">
-                                        <div className="progress-ring">
-                                            <div className="progress-value">100%</div>
-                                        </div>
-                                        <span>Safety</span>
-                                    </div>
-                                </div>
-                                <div className="certifications">
-                                    <div className="cert-badge">
-                                        <i className="fas fa-leaf"></i>
-                                        <span>USDA Organic</span>
-                                    </div>
-                                    <div className="cert-badge">
-                                        <i className="fas fa-check-double"></i>
-                                        <span>ISO 22000</span>
-                                    </div>
-                                    <div className="cert-badge">
-                                        <i className="fas fa-shield-alt"></i>
-                                        <span>HACCP</span>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {activeTab === 'environment' && (
-                            <div className="environment-content">
-                                <div className="env-stats">
-                                    <div className="env-stat">
-                                        <i className="fas fa-thermometer-half"></i>
-                                        <div>
-                                            <h5>{cropData.temperature}</h5>
-                                            <p>Temperature</p>
-                                        </div>
-                                    </div>
-                                    <div className="env-stat">
-                                        <i className="fas fa-tint"></i>
-                                        <div>
-                                            <h5>{cropData.humidity}</h5>
-                                            <p>Humidity</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="sustainability">
-                                    <h5>Sustainability Practices</h5>
-                                    <div className="practice-tags">
-                                        <span><i className="fas fa-recycle"></i> Water Conservation</span>
-                                        <span><i className="fas fa-leaf"></i> Carbon Neutral</span>
-                                        <span><i className="fas fa-heart"></i> Biodiversity</span>
-                                    </div>
-                                </div>
-                            </div>
-                        )} */}
                     </div>
                 </div>
 
@@ -367,7 +299,7 @@ const CropShowcase = () => {
                     <div className="contact-info">
                         <div className="contact-item">
                             <i className="fas fa-map-marker-alt"></i>
-                            <span>{cropData.location}</span>
+                            <span>{cropData.fullName}</span>
                         </div>
                         <div
                             className="contact-item clickable"

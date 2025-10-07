@@ -14,6 +14,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.farmchainx.api.distributor.services.InventoryService;
 import com.farmchainx.api.distributor.dto.InventoryUpsertRequest;
+import com.farmchainx.api.shipping.services.ShipmentService;
+import org.springframework.security.access.prepost.PreAuthorize;
+import com.farmchainx.api.shipping.dto.DistributorToRetailerCreateRequest;
 
 import java.time.Instant;
 import java.util.List;
@@ -26,7 +29,9 @@ public class ShipmentService {
   private final UserRepository users;
   private final TraceService trace;
   private final InventoryService inventory;
+ 
 
+  
   public ShipmentService(ShipmentRepository shipments, CropRepository crops, UserRepository users, TraceService trace, InventoryService inventory) {
     this.shipments = shipments;
     this.crops = crops;
@@ -200,4 +205,39 @@ trace.add(
 	    );
 	
   }
+
+@Transactional
+public ShipmentResponse createToRetailer(DistributorToRetailerCreateRequest req) {
+   User distributor = SecurityUtils.currentUser(users).orElseThrow();
+   User retailer = users.findById(req.retailerUserId()).orElseThrow();
+   Crop crop = crops.findById(req.cropId()).orElseThrow();
+
+   String ship = "SH-" + System.currentTimeMillis() + "-" + new Random().nextInt(1000);
+   double total = req.quantityKg() * req.unitPrice();
+
+   Shipment s = Shipment.builder()
+       .shipmentId(ship)
+       .batchCode(crop.getBatchCode())
+       .crop(crop)
+       .fromUser(distributor)
+       .toUser(retailer)
+       .fromStage(SupplyStage.DISTRIBUTOR)
+       .toStage(SupplyStage.RETAILER)
+       .originLocation(req.originLocation() == null ? "Distributor Warehouse" : req.originLocation())
+       .destinationLocation(req.destinationLocation() == null ? (retailer.getFullName() == null ? "Retailer" : retailer.getFullName()) : req.destinationLocation())
+       .quantityKg(req.quantityKg())
+       .unitPrice(req.unitPrice())
+       .totalValue(total)
+       .vehicle(req.vehicle())
+       .status(ShipmentStatus.CREATED)
+       .createdAt(Instant.now())
+       .updatedAt(Instant.now())
+       
+       .build();
+
+   Shipment saved = shipments.save(s);
+   trace.add(saved.getBatchCode(), SupplyStage.DISTRIBUTOR, saved.getOriginLocation(), "Shipment created " + saved.getShipmentId(), distributor);
+   return toResponse(saved);
+}
+
 }

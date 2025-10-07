@@ -14,7 +14,6 @@ import logo from './assets/farmchainxLogo.png';
 import apiService from './conc/api';
 
 const CropManagementSystem = () => {
-  // Core State Management
   const [crops, setCrops] = useState([]);
   const [shipments, setShipments] = useState([]);
   const [loadingCrops, setLoadingCrops] = useState(false);
@@ -24,15 +23,9 @@ const CropManagementSystem = () => {
   const [expenses, setExpenses] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  // near other useState calls
   const [distributors, setDistributors] = useState([]);
-
-
-  // Loading states - ADDED FOR API INTEGRATION
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isShipmentModalOpen, setIsShipmentModalOpen] = useState(false);
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
@@ -40,8 +33,6 @@ const CropManagementSystem = () => {
   const [isWeatherModalOpen, setIsWeatherModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [qrModalCrop, setQrModalCrop] = useState(null);
-
-  // Edit States
   const [editingCrop, setEditingCrop] = useState(null);
   const [editingExpense, setEditingExpense] = useState(null);
   const [editingCustomer, setEditingCustomer] = useState(null);
@@ -55,9 +46,6 @@ const CropManagementSystem = () => {
     dateRange: '',
     customer: ''
   });
-
-
-  // Form Data States
   const [formData, setFormData] = useState({
     name: '',
     type: '',
@@ -104,11 +92,7 @@ const CropManagementSystem = () => {
     notes: '',
     creditLimit: ''
   });
-
-  // state
   const [imagePreview, setImagePreview] = useState(null);
-
-  // helpers
   const fileToDataUrl = (file) =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -148,24 +132,16 @@ const CropManagementSystem = () => {
             (s.status || "");
 
     const quantity = s.quantity ?? s.quantityKg ?? s.totalQuantity ?? s.qty ?? 0;
-
-    // Prefer server timestamps
     const dispatchDate = s.dispatchDate || s.dateCreated || s.createdAt || null;
     const expectedDelivery = s.expectedDelivery || s.etd || s.eta || null;
-
-    // Names and locations
     const product = s.product || s.cropName || s.itemName || s.crop?.name || (s.items?.[0]?.cropName) || "—";
     const farmer = s.farmer || s.farmerName || s.fromName || s.fromUser?.fullName || "—";
     const farmerPhone = s.farmerPhone || s.fromPhone || s.contact || s.fromUser?.phone || "—";
     const origin = s.origin || s.source || s.fromLocation || s.originLocation || "—";
     const destination = s.destination || s.toLocation || s.destinationLocation || s.distributorName || "—";
-
-    // IDs and codes
     const id = s.id ?? s.shipmentId ?? s.shipmentID ?? s.sid ?? "";
     const batchId = s.batchId ?? s.batchCode ?? s.batchcode ?? s.batch ?? s.crop?.batchCode ?? "";
     const shipmentId = s.shipmentId || s.shipmentId || s.awb || s.shipmentId || "";
-
-    // Vehicle/driver/telemetry
     const vehicleNumber = s.vehicleNumber || s.vehicle || "";
     const driverName = s.driverName || s.driver || "";
     const driverPhone = s.driverPhone || "";
@@ -233,8 +209,6 @@ const CropManagementSystem = () => {
       expenseReminders: true
     }
   });
-
-  // Mock farmer profile
   const [farmerProfile] = useState({
     name: 'Farmer',
     farmName: 'Ujwal Farm',
@@ -242,14 +216,6 @@ const CropManagementSystem = () => {
     totalArea: '45 acres',
     avatar: null
   });
-
-  // // Mock distributors and expense categories
-  // const [distributors] = useState([
-  //   { id: 'DIST001', name: 'AgriDistribute Solutions', location: 'Mumbai, MH', contact: '+91 98765 12345' },
-  //   { id: 'DIST002', name: 'FreshCorp Logistics', location: 'Pune, MH', contact: '+91 98765 54321' },
-  //   { id: 'DIST003', name: 'GreenChain Distribution', location: 'Nashik, MH', contact: '+91 98765 67890' },
-  //   { id: 'DIST004', name: 'Farm2Market Hub', location: 'Aurangabad, MH', contact: '+91 98765 09876' }
-  // ]);
 
   const expenseCategories = [
     'Seeds & Planting', 'Fertilizers', 'Pesticides', 'Irrigation', 'Labor',
@@ -275,10 +241,6 @@ const CropManagementSystem = () => {
 
   const isFarmer = roles.includes("FARMER");
   const isDistributor = roles.includes("DISTRIBUTOR");
-
-  
-
-  // Utility Functions
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('en-IN', {
@@ -305,8 +267,6 @@ const CropManagementSystem = () => {
       minute: '2-digit'
     });
   };
-
-  // Event Handlers
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
       localStorage.removeItem('isAuthenticated');
@@ -326,7 +286,6 @@ const CropManagementSystem = () => {
   const handleStatusChange = async (shipmentId, nextStatus) => {
     try {
       await apiService.updateShipmentStatus(shipmentId, nextStatus);
-      // Reload same list
       const roles = JSON.parse(localStorage.getItem("userData"))?.roles || [];
       const next = roles.includes("FARMER")
         ? await apiService.getOutgoingShipments()
@@ -338,10 +297,6 @@ const CropManagementSystem = () => {
       alert("Failed to update status.");
     }
   };
-
-
-
-  // Form Reset Functions
   const resetForm = () => {
     setFormData({
       name: '',
@@ -400,8 +355,6 @@ const CropManagementSystem = () => {
     });
     setEditingCustomer(null);
   };
-
-  // Modal Functions
   const openAddModal = () => {
     resetForm();
     setIsModalOpen(true);
@@ -478,8 +431,6 @@ const CropManagementSystem = () => {
         setLoadingShipments(false);
       }
     };
-
-  // 2) In useEffect just call it
   useEffect(() => {
     if (isFarmer) loadCrops();
     loadShipments();
@@ -503,7 +454,6 @@ const CropManagementSystem = () => {
     })();
     return () => { cancelled = true; };
   }, []);
-  // 3) Keep saveCrop with full braces
   const saveCrop = async () => {
     if (!formData.name || !formData.type || !formData.status) {
       alert('Please fill in all required fields');
@@ -520,7 +470,6 @@ const CropManagementSystem = () => {
       }
       await loadCrops();
       setIsModalOpen(false);
-      // Optional toast; keep UI behavior unchanged otherwise
       alert(editingCrop ? 'Crop updated successfully!' : 'Crop added successfully!');
     } catch (e) {
       setError(e.message || 'Save failed');
@@ -529,15 +478,10 @@ const CropManagementSystem = () => {
       setLoading(false);
     }
   };
-
-  
-  // Input Handlers
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
-
-  // Example handler replacement when user submits shipment form
   const handleCreateShipment = async (form) => {
     try {
       await apiService.createShipment({
@@ -548,9 +492,6 @@ const CropManagementSystem = () => {
         unitPrice: form.pricePerKg ? Number(form.pricePerKg) : null,
         notes: form.notes || ''
       });
-
-
-      // Reload shipments after create
       const roles = JSON.parse(localStorage.getItem("userData"))?.roles || [];
       const next = roles.includes("FARMER")
         ? await apiService.getOutgoingShipments()
@@ -596,9 +537,7 @@ const CropManagementSystem = () => {
     if (data.plantedDate) p.plantedDate = data.plantedDate;
     if (data.harvestDate) p.harvestDate = data.harvestDate;
     if (data.image_url) p.image_url = data.image_url;
-    // Persist as URL only if it's http(s) and user provided a URL in the existing image field
     if (typeof data.image === 'string' && /^https?:\/\//i.test(data.image)) p.image_url = data.image;
-    // Parse "lat, lng"
     if (data.gpsCoordinates && data.gpsCoordinates.includes(',')) {
       const [latRaw, lngRaw] = data.gpsCoordinates.split(',');
       const lat = parseFloat(String(latRaw).replace(/[^\d.-]/g, ''));
@@ -626,19 +565,16 @@ const CropManagementSystem = () => {
       gpsCoordinates: (crop.gps_lat != null && crop.gps_lng != null) ? `${crop.gps_lat}, ${crop.gps_lng}` : '',
       pesticides: crop.pesticides ?? '',
       notes: crop.notes ?? '',
-      // Keep existing UI field "image" for text URL if already used by UI
       image: (typeof s.image === 'string' && /^https?:\/\//i.test(s.image)) ? s.image : (crop.image_url || ''),
       pricePerKg: crop.unitPrice ?? s.pricePerKg ?? '',
       waterRequirement: s.waterRequirement ?? '',
       expectedYield: s.expectedYield ?? '',
     }));
-    // inside openEditModal(crop)
     setImagePreview(crop.image_url || null);
     setFormData((s) => ({ ...s, image_url: crop.image_url || '' }));
     setEditingCrop(crop);
     setIsModalOpen(true);
   };
-  // Build public showcase URL for QR
   const buildPublicUrl = (publicId) =>
     `${window.location.origin}/showcase/${encodeURIComponent(publicId)}`;
 
@@ -652,10 +588,7 @@ const CropManagementSystem = () => {
 
   const selectedDistributor = (distributors || []).find(d => String(d.id) === String(shipmentData.distributorUserId));
   const dest = selectedDistributor?.name || selectedDistributor?.fullName || `Distributor ${selectedDistributor?.id}`;
-
-  // Replace your existing saveShipment with this version
   const saveShipment = async () => {
-    // 1) Strong validation (trim + explicit checks)
     const cropId = shipmentData?.cropId;
     const distId = shipmentData?.distributorUserId;
     const qtyStr = shipmentData?.quantity;
@@ -667,16 +600,12 @@ const CropManagementSystem = () => {
       alert('Please fill in all required fields');
       return;
     }
-
-    // 2) Safe lookups (coerce to the same type)
     const selectedCrop = (crops || []).find(c => String(c.id) === String(cropId));
     const selectedDistributor = (distributors || []).find(d => String(d.id) === String(distId));
     if (!selectedCrop || !selectedDistributor) {
       alert('Invalid crop or distributor selection');
       return;
     }
-
-    // 3) Quantity and availability
     const shipmentQuantity = Number(qtyStr);
     const availableQuantity = Number(
       selectedCrop.availableQuantity ?? selectedCrop.quantity ?? 0
@@ -698,8 +627,6 @@ const CropManagementSystem = () => {
             unitPrice: shipmentData.pricePerKg ? Number(shipmentData.pricePerKg) : null,
               notes: (shipmentData.notes || '').trim(),
 };
-
-    // 5) Local fallback object (for optimistic UI/offline)
     const newLocalShipment = {
       id: `SH${Date.now()}`,
       batchId: selectedCrop.batchId,
@@ -727,11 +654,8 @@ const CropManagementSystem = () => {
 
     try {
       setLoading(true);
-
-      // 6) Try API first
       try {
         await apiService.createShipment(payload);
-        // After successful create, prefer reloading from server for canonical data
         const roles = JSON.parse(localStorage.getItem('userData'))?.roles || [];
         const refreshed = roles?.includes('FARMER')
           ? await apiService.getOutgoingShipments()
@@ -743,8 +667,6 @@ const CropManagementSystem = () => {
         console.error('API shipment creation failed, creating locally:', apiError);
         setShipments(prev => [...prev, newLocalShipment]);
       }
-
-      // 7) Deduct quantity on the selected crop
       setCrops(prev =>
         (prev || []).map(c =>
           String(c.id) === String(selectedCrop.id)
@@ -774,7 +696,6 @@ const CropManagementSystem = () => {
       setLoading(true);
 
       if (editingExpense) {
-        // Try API first, fallback to local update
         try {
           const updatedExpense = await apiService.updateExpense(editingExpense.id, expenseData);
           setExpenses(prev => prev.map(expense => expense.id === editingExpense.id ? updatedExpense : expense));
@@ -785,7 +706,6 @@ const CropManagementSystem = () => {
         }
         alert('Expense updated successfully!');
       } else {
-        // Try API first, fallback to local creation
         try {
           const newExpense = await apiService.addExpense(expenseData);
           setExpenses(prev => [...prev, newExpense]);
@@ -857,9 +777,7 @@ const CropManagementSystem = () => {
   const deleteShipment = (id) => {
     if (window.confirm('Are you sure you want to cancel this shipment?')) {
       const shipment = shipments.find(s => s.id === id);
-      //&& shipment.status === 'pending'
       if (shipment && shipment.status === 'pending') {
-        // Return quantity back to crop
         setCrops(prev => prev.map(crop =>
           crop.id == shipment.cropId
             ? { ...crop, availableQuantity: parseFloat(crop.availableQuantity || 0) + parseFloat(shipment.quantity) }
@@ -893,8 +811,6 @@ const CropManagementSystem = () => {
     alert('Settings saved successfully!');
     setIsSettingsModalOpen(false);
   };
-
-  // Export Functions
   const exportData = (type) => {
     let data, filename, headers;
 
@@ -975,8 +891,6 @@ const CropManagementSystem = () => {
 
     alert(`${type.charAt(0).toUpperCase() + type.slice(1)} data exported successfully!`);
   };
-
-  // Menu items - Enhanced with new sections
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'crops', label: 'My Crops', icon: Sprout },
@@ -988,8 +902,6 @@ const CropManagementSystem = () => {
     { id: 'knowledge', label: 'Knowledge Base', icon: BookOpen },
     { id: 'settings', label: 'Settings', icon: Settings }
   ];
-
-  // Calculate enhanced farmer stats
   const farmerStats = {
     totalCrops: crops.length,
     totalArea: crops.reduce((sum, crop) => sum + parseFloat(crop.area || 0), 0),
@@ -1071,8 +983,6 @@ const CropManagementSystem = () => {
 
     return matchesSearch;
   });
-
-  // Show loading or error states but still render UI
   if (loading && crops.length === 0) {
     return (
       <div className="farmer-dashboard">
@@ -1082,14 +992,12 @@ const CropManagementSystem = () => {
       </div>
     );
   }
-
-  // Render Functions
   const renderDashboardContent = () => {
     switch (activeSection) {
       case 'dashboard':
         return (
           <div className="dashboard-content">
-            {/* Error message banner if API failed */}
+            {}
             {error && (
               <div style={{
                 padding: '12px',
@@ -1104,7 +1012,7 @@ const CropManagementSystem = () => {
               </div>
             )}
 
-            {/* Stats Grid */}
+            {}
             <div className="stats-grid">
               <div className="stat-card">
                 <div className="stat-icon">
@@ -1162,9 +1070,9 @@ const CropManagementSystem = () => {
               </div>
             </div>
 
-            {/* Dashboard Grid */}
+            {}
             <div className="dashboard-grid">
-              {/* Recent Crops */}
+              {}
               <div className="dashboard-card">
                 <h3>Recent Crops</h3>
                 <div className="activity-list">
@@ -1188,7 +1096,7 @@ const CropManagementSystem = () => {
                 </div>
               </div>
 
-              {/* Weather Info */}
+              {}
               <div className="dashboard-card">
                 <h3>Weather Overview</h3>
                 <div className="weather-info">
@@ -1214,7 +1122,7 @@ const CropManagementSystem = () => {
                 </div>
               </div>
 
-              {/* Recent Shipments */}
+              {}
               <div className="dashboard-card">
                 <h3>Recent Shipments</h3>
                 <div className="recent-shipments">
@@ -1235,7 +1143,7 @@ const CropManagementSystem = () => {
                 </div>
               </div>
 
-              {/* Quick Actions */}
+              {}
               <div className="dashboard-card">
                 <h3>Quick Actions</h3>
                 <div className="quick-actions" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1264,7 +1172,7 @@ const CropManagementSystem = () => {
       case 'crops':
         return (
           <div className="dashboard-content">
-            {/* Header */}
+            {}
             <div className="header">
               <h1>My Crops Management</h1>
               <div className="header-actions">
@@ -1279,7 +1187,7 @@ const CropManagementSystem = () => {
               </div>
             </div>
 
-            {/* Search and Filter Bar */}
+            {}
             <div className="search-filter-bar">
               <div className="search-container">
                 <Search className="search-icon" size={20} />
@@ -1316,7 +1224,7 @@ const CropManagementSystem = () => {
               </select>
             </div>
 
-            {/* Crops Table */}
+            {}
             <div className="table-section">
               <div className="table-container">
                 <table className="data-table">
@@ -1463,7 +1371,7 @@ const CropManagementSystem = () => {
       case 'shipments':
         return (
           <div className="dashboard-content">
-            {/* Header */}
+            {}
             <div className="header">
               <h1>Shipments Management</h1>
               <div className="header-actions">
@@ -1478,7 +1386,7 @@ const CropManagementSystem = () => {
               </div>
             </div>
 
-            {/* Search and Filter */}
+            {}
             <div className="search-filter-bar">
               <div className="search-container">
                 <Search className="search-icon" size={20} />
@@ -1504,7 +1412,7 @@ const CropManagementSystem = () => {
               </select>
             </div>
 
-            {/* Shipments Table */}
+            {}
             <div className="table-section">
               <div className="table-container">
                 <table className="data-table">
@@ -1572,7 +1480,7 @@ const CropManagementSystem = () => {
                             <div className="route-display">
                               <div className="secondary-text">
                                 <MapPin size={12} />
-                                {/* Route cell render */}
+                                {}
                                 {`${shipment.origin || 'Farm'} → ${shipment.destination || shipment.destinationLocation || '-'}`}
 
                               </div>
@@ -1638,7 +1546,7 @@ const CropManagementSystem = () => {
       case 'expenses':
         return (
           <div className="dashboard-content">
-            {/* Header */}
+            {}
             <div className="header">
               <h1>Farm Expenses Management</h1>
               <div className="header-actions">
@@ -1653,7 +1561,7 @@ const CropManagementSystem = () => {
               </div>
             </div>
 
-            {/* Search Bar */}
+            {}
             <div className="search-filter-bar">
               <div className="search-container">
                 <Search className="search-icon" size={20} />
@@ -1667,7 +1575,7 @@ const CropManagementSystem = () => {
               </div>
             </div>
 
-            {/* Expenses Summary */}
+            {}
             <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', marginBottom: '24px' }}>
               <div className="dashboard-card">
                 <h3>Total Expenses</h3>
@@ -1701,7 +1609,7 @@ const CropManagementSystem = () => {
               </div>
             </div>
 
-            {/* Expenses Table */}
+            {}
             <div className="table-section">
               <div className="table-container">
                 <table className="data-table">
@@ -1786,7 +1694,7 @@ const CropManagementSystem = () => {
       case 'customers':
         return (
           <div className="dashboard-content">
-            {/* Header */}
+            {}
             <div className="header">
               <h1>Customer Management</h1>
               <div className="header-actions">
@@ -1801,7 +1709,7 @@ const CropManagementSystem = () => {
               </div>
             </div>
 
-            {/* Search Bar */}
+            {}
             <div className="search-filter-bar">
               <div className="search-container">
                 <Search className="search-icon" size={20} />
@@ -1815,7 +1723,7 @@ const CropManagementSystem = () => {
               </div>
             </div>
 
-            {/* Customer Grid */}
+            {}
             <div className="retailer-grid">
               {filteredCustomers.map(customer => (
                 <div key={customer.id} className="retailer-card">
@@ -2170,7 +2078,7 @@ const CropManagementSystem = () => {
 
   return (
     <div className="farmer-dashboard">
-      {/* Sidebar */}
+      {}
       <div className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
           <div className="logo-section">
@@ -2214,9 +2122,9 @@ const CropManagementSystem = () => {
         </div>
       </div>
 
-      {/* Main Content */}
+      {}
       <div className="main-content">
-        {/* Top Header */}
+        {}
         <div className="top-header">
           <div className="header-left">
             <h1>{menuItems.find(item => item.id === activeSection)?.label || 'Dashboard'}</h1>
@@ -2244,7 +2152,7 @@ const CropManagementSystem = () => {
           </div>
         </div>
 
-        {/* Content Area */}
+        {}
         <div className="content-area">
           <div className="container">
             {renderDashboardContent()}
@@ -2252,8 +2160,8 @@ const CropManagementSystem = () => {
         </div>
       </div>
 
-      {/* All the existing modals... (ADD/EDIT CROP, SHIPMENT, EXPENSE, CUSTOMER, etc.) */}
-      {/* Add/Edit Crop Modal */}
+      {}
+      {}
       {isModalOpen && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -2524,7 +2432,7 @@ const CropManagementSystem = () => {
         </div>
       )}
 
-      {/* Create Shipment Modal */}
+      {}
       {isShipmentModalOpen && (
         <div className="modal-overlay" onClick={closeShipmentModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -2642,7 +2550,7 @@ const CropManagementSystem = () => {
                   />
                 </div>
               </div>
-              {/* Shipment Summary */}
+              {}
               {shipmentData.cropId && shipmentData.quantity && (
                 <div style={{ marginTop: '20px', padding: '16px', background: '#f8fafc', borderRadius: '8px' }}>
                   <h4>Shipment Summary</h4>
@@ -2664,7 +2572,7 @@ const CropManagementSystem = () => {
           </div>
         </div>
       )}
-      {/* Add/Edit Expense Modal */}
+      {}
       {isExpenseModalOpen && (
         <div className="modal-overlay" onClick={() => setIsExpenseModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -2783,7 +2691,7 @@ const CropManagementSystem = () => {
 
       
 
-      {/* QR Code Modal */}
+      {}
       {qrModalCrop && (
         <div className="modal-overlay" onClick={() => setQrModalCrop(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>

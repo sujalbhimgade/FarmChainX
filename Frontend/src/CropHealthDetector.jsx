@@ -369,7 +369,7 @@ const CropHealthDetector = () => {
 
     return (
         <div className="crop-health-detector">
-            {/* Header */}
+            {}
             <div className="detector-header">
                 <div className="header-left">
                     <div className="header-icon">
@@ -382,9 +382,9 @@ const CropHealthDetector = () => {
                 </div>
             </div>
 
-            {/* Main Content Grid */}
+            {}
             <div className="detector-grid">
-                {/* Upload/Camera Section */}
+                {}
                 <div className="upload-section">
                     {!isCameraActive ? (
                         <div
@@ -496,7 +496,7 @@ const CropHealthDetector = () => {
                     )}
                 </div>
 
-                {/* Results Section */}
+                {}
                 <div className="results-section">
                     {error && (
                         <div className="error-card">
@@ -507,7 +507,7 @@ const CropHealthDetector = () => {
 
                     {analysis ? (
                         <div className="results-content">
-                            {/* Primary Status Card */}
+                            {}
                             <div className={`primary-status-card ${analysis.status}`}>
                                 <div className="status-header">
                                     <div className="status-icon">
@@ -540,7 +540,7 @@ const CropHealthDetector = () => {
                                 </div>
                             </div>
 
-                            {/* Key Metrics Grid */}
+                            {}
                             <div className="metrics-grid">
                                 <div className="metric-card">
                                     <div className="metric-icon timing">
@@ -573,7 +573,7 @@ const CropHealthDetector = () => {
                                 </div>
                             </div>
 
-                            {/* Storage Recommendations */}
+                            {}
                             <div className="storage-recommendations">
                                 <h5><Package size={16} /> Storage Guidelines</h5>
                                 <div className="storage-grid">
@@ -594,7 +594,7 @@ const CropHealthDetector = () => {
                                 </div>
                             </div>
 
-                            {/* Action Recommendations */}
+                            {}
                             <div className="action-recommendations">
                                 <h5>Recommended Actions</h5>
                                 <div className={`action-card ${analysis.status}`}>
@@ -621,7 +621,7 @@ const CropHealthDetector = () => {
                                 </div>
                             </div>
 
-                            {/* Additional Detections */}
+                            {}
                             {analysis.totalDetections > 1 && results.predictions && (
                                 <div className="additional-detections">
                                     <h5>All Detections ({analysis.totalDetections} items)</h5>

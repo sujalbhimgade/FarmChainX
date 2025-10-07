@@ -1,38 +1,38 @@
-/* Scoped color palette - only for chatbot */
+
 .ai-chatbot-launcher,
 .chatbot-container {
-    /* Primary colors with modern twist */
+    
     --chatbot-primary-gradient: linear-gradient(135deg, #37d3ab 0%, #23a6d5 100%);
     --chatbot-primary-start: #667eea;
     --chatbot-primary-end: #764ba2;
     --chatbot-primary-hover: #5a6fd8;
-    /* Modern neutral palette */
+    
     --chatbot-bg-primary: #ffffff;
     --chatbot-bg-secondary: #f1f5f9;
     --chatbot-bg-tertiary: #f1f5f9;
     --chatbot-bg-overlay: rgba(255, 255, 255, 0.95);
-    /* Text colors */
+    
     --chatbot-text-primary: #1e293b;
     --chatbot-text-secondary: #64748b;
     --chatbot-text-muted: #94a3b8;
-    /* Border and shadow */
+    
     --chatbot-border-light: #e2e8f0;
     --chatbot-border-medium: #cbd5e1;
     --chatbot-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --chatbot-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     --chatbot-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     --chatbot-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-    /* Status colors */
+    
     --chatbot-success: #10b981;
     --chatbot-error: #ef4444;
     --chatbot-warning: #f59e0b;
-    /* Glassmorphism effect */
+    
     --chatbot-glass-bg: rgba(255, 255, 255, 0.25);
     --chatbot-glass-border: rgba(255, 255, 255, 0.18);
     --chatbot-backdrop-blur: blur(16px);
 }
 
-/* Chatbot Launcher */
+
 .ai-chatbot-launcher {
     position: fixed;
     bottom: 24px;
@@ -59,7 +59,7 @@
     backdrop-filter: var(--chatbot-backdrop-blur);
 }
 
-/* Main Chatbot Container */
+
 .chatbot-container {
     position: fixed;
     bottom: 20px;
@@ -78,7 +78,7 @@
     border: 1px solid var(--chatbot-glass-border);
 }
 
-/* Chatbot Header */
+
 .chatbot-header {
     background: var(--chatbot-primary-gradient);
     padding: 16px;
@@ -176,7 +176,7 @@
     justify-content: center;
 }
 
-/* Messages Area */
+
 .chat-messages {
     flex: 1;
     overflow-y: auto;
@@ -187,7 +187,7 @@
     background: var(--chatbot-bg-secondary);
 }
 
-/* Welcome Screen - CENTERED */
+
 .welcome-screen {
     display: flex;
     flex-direction: column;
@@ -279,7 +279,7 @@
     margin-top: 1px;
 }
 
-/* Messages */
+
 .message {
     display: flex;
     gap: 12px;
@@ -326,7 +326,7 @@
     border-color: transparent;
 }
 
-/* Text Formatting */
+
 .message-text {
     white-space: pre-wrap;
     line-height: 1.6;
@@ -356,7 +356,7 @@
     color: rgba(255, 255, 255, 0.8);
 }
 
-/* LIST ALIGNMENT FOR REACTMARKDOWN */
+
 .message.bot .message-text ol {
     margin: 8px 0;
     padding-left: 20px;
@@ -397,7 +397,7 @@
     padding-left: 16px;
 }
 
-/* Input Area */
+
 .chat-input {
     padding: 12px;
     background: var(--chatbot-bg-primary);
@@ -489,7 +489,7 @@
     transform: none;
 }
 
-/* Loading Animation */
+
 .typing-indicator {
     display: flex;
     gap: 4px;
@@ -538,7 +538,7 @@
     font-weight: 600;
 }
 
-/* Image Preview */
+
 .image-preview {
     display: flex;
     align-items: center;
@@ -598,7 +598,7 @@
     color: white;
 }
 
-/* Mobile Responsive */
+
 @media (max-width: 768px) {
     .chatbot-container {
         bottom: 0;

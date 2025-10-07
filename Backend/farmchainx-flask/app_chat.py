@@ -8,7 +8,7 @@ load_dotenv(dotenv_path=".env")
 load_dotenv()
 app = Flask(__name__)
 
-# Allow the Vite dev origin
+
 CORS(app, resources={r"/chat": {"origins": [
     "http://localhost:5173", "http://127.0.0.1:5173"
 ]}})
@@ -41,7 +41,7 @@ def chat():
     if not user_msg:
         return jsonify({"ok": False, "error": "message is required"}), 400
 
-    # IMPROVED SYSTEM PROMPT FOR BETTER FORMATTING
+   
     system_prompt = (
         "Act as an agriculture assistant for Indian contexts. "
         "Format your response with clear structure: "
@@ -78,5 +78,4 @@ def chat():
     return jsonify({"ok": True, "reply": reply})
 
 if __name__ == "__main__":
-    # use 127.0.0.1 to match the URL the frontend calls
     app.run(host="127.0.0.1", port=5000, debug=True)

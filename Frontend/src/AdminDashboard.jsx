@@ -44,21 +44,15 @@ import './AdminDashboard.css';
 const AdminDashboard = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  // Modal states
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isSystemConfigModalOpen, setIsSystemConfigModalOpen] = useState(false);
   const [viewModalData, setViewModalData] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
-
-  // Filter states
   const [filters, setFilters] = useState({
     userType: '',
     status: '',
     search: ''
   });
-
-  // Form data states
   const [userData, setUserData] = useState({
     name: '',
     email: '',
@@ -74,10 +68,6 @@ const AdminDashboard = () => {
     category: 'platform',
     description: ''
   });
-
-  // ==================== REAL ADMIN DATA ====================
-
-  // User Management - Core admin responsibility
   const [users, setUsers] = useState([
     {
       id: 1,
@@ -126,8 +116,6 @@ const AdminDashboard = () => {
       suspensionReason: 'Multiple quality complaints'
     }
   ]);
-
-  // System Issues/Reports - What admins actually monitor
   const [systemIssues, setSystemIssues] = useState([
     {
       id: 1,
@@ -163,8 +151,6 @@ const AdminDashboard = () => {
       affectedUsers: 5
     }
   ]);
-
-  // Platform Configuration - Real admin settings
   const [platformConfigs, setPlatformConfigs] = useState([
     {
       id: 1,
@@ -203,8 +189,6 @@ const AdminDashboard = () => {
       modifiedBy: 'Admin'
     }
   ]);
-
-  // Menu items - Only what admins need
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard Overview', icon: Home },
     { id: 'users', label: 'User Management', icon: Users },
@@ -213,10 +197,6 @@ const AdminDashboard = () => {
     { id: 'analytics', label: 'Platform Analytics', icon: BarChart3 },
     { id: 'audit', label: 'Audit Logs', icon: FileText }
   ];
-
-  // ==================== REAL ADMIN FUNCTIONS ====================
-
-  // User Management Functions
   const suspendUser = (userId, reason) => {
     if (window.confirm(`Suspend user account?\nReason: ${reason}`)) {
       setUsers(prev => prev.map(user =>
@@ -250,8 +230,6 @@ const AdminDashboard = () => {
         : user
     ));
   };
-
-  // Issue Management Functions
   const updateIssueStatus = (issueId, newStatus) => {
     setSystemIssues(prev => prev.map(issue =>
       issue.id === issueId ? { ...issue, status: newStatus } : issue
@@ -273,8 +251,6 @@ const AdminDashboard = () => {
       ));
     }
   };
-
-  // System Configuration Functions
   const updateSystemConfig = (configId, newValue) => {
     setPlatformConfigs(prev => prev.map(config =>
       config.id === configId
@@ -287,8 +263,6 @@ const AdminDashboard = () => {
         : config
     ));
   };
-
-  // Filter functions
   const filteredUsers = users.filter(user => {
     const matchesRole = !filters.userType || user.role === filters.userType;
     const matchesStatus = !filters.status || user.status === filters.status;
@@ -298,8 +272,6 @@ const AdminDashboard = () => {
 
     return matchesRole && matchesStatus && matchesSearch;
   });
-
-  // Real admin statistics
   const adminStats = {
     totalUsers: users.length,
     activeUsers: users.filter(u => u.status === 'active').length,
@@ -310,8 +282,6 @@ const AdminDashboard = () => {
     totalTransactions: users.reduce((sum, u) => sum + u.totalTransactions, 0),
     platformRevenue: users.reduce((sum, u) => sum + (u.accountValue * 0.025), 0) // 2.5% commission
   };
-
-  // Input handlers
   const handleUserInputChange = (e) => {
     const { name, value } = e.target;
     setUserData(prev => ({ ...prev, [name]: value }));
@@ -321,13 +291,9 @@ const AdminDashboard = () => {
     const { name, value } = e.target;
     setSystemConfig(prev => ({ ...prev, [name]: value }));
   };
-
-  // View details function
   const viewDetails = (item, type) => {
     setViewModalData({ ...item, type });
   };
-
-  // Status badge helper
   const getStatusBadge = (status) => {
     const statusMap = {
       'active': 'status-in-stock',
@@ -347,7 +313,7 @@ const AdminDashboard = () => {
 
   const renderDashboard = () => (
     <div className="dashboard-content">
-      {/* Real Admin Stats */}
+      {}
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-icon">
@@ -423,7 +389,7 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Real Admin Dashboard Grid */}
+      {}
       <div className="dashboard-grid">
         <div className="dashboard-card">
           <h3>Recent Critical Issues</h3>
@@ -851,7 +817,7 @@ const AdminDashboard = () => {
 
   return (
     <div className="admin-dashboard">
-      {/* Sidebar */}
+      {}
       <div className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
           <div className="logo-section">
@@ -890,9 +856,9 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Main Content */}
+      {}
       <div className="main-content">
-        {/* Top Header */}
+        {}
         <div className="top-header">
           <div className="header-left">
             <h1>{menuItems.find(item => item.id === activeSection)?.label || 'Admin Dashboard'}</h1>
@@ -914,7 +880,7 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Content Area */}
+        {}
         <div className="content-area">
           <div className="container">
             {renderContent()}
@@ -922,7 +888,7 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* View Details Modal */}
+      {}
       {viewModalData && (
         <div className="modal-overlay" onClick={() => setViewModalData(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>

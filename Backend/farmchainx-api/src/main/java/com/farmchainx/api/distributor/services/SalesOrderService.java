@@ -88,11 +88,11 @@ public class SalesOrderService {
   }
 
   private void reserve(SalesOrder o) {
-    // For demo keep it simple (no separate reserved bucket)
+ 
   }
 
   private void unreserve(SalesOrder o) {
-    // For demo, nothing to return to stock if not deducted yet
+    
   }
 
   private void shipAndDeduct(SalesOrder o) {
