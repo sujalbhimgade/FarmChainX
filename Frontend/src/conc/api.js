@@ -130,6 +130,10 @@ class ApiService {
     async getShipments() { return this.request('/retailer/shipments', { method: 'GET' }); }
     async addShipment(payload) { return this.request('/retailer/shipments', { method: 'POST', body: JSON.stringify(payload) }); }
     async getSales() { return this.request('/retailer/sales', { method: 'GET' }); }
+    async getSalesOrderById(id) {
+        return this.request(`/distributor/orders/${id}`, { method: 'GET' });
+    }
+
     async addSale(payload) { return this.request('/retailer/sales', { method: 'POST', body: JSON.stringify(payload) }); }
     async retailerReceiveShipment(payload) {
         return this.request('/retailer/shipments/receive', {

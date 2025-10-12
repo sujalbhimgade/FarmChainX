@@ -10,6 +10,8 @@ import com.farmchainx.api.distributor.repo.InventoryRepository;
 import com.farmchainx.api.security.SecurityUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.farmchainx.api.distributor.dto.SalesOrderResponse;
+import com.farmchainx.api.distributor.dto.SalesOrderLineResponse;
 
 import java.time.Instant;
 import java.util.List;
@@ -107,16 +109,34 @@ public class SalesOrderService {
     // Optionally: create a distributor->retailer Shipment and append Trace here
   }
 
-  private SalesOrderResponse toResponse(SalesOrder o) {
-    return new SalesOrderResponse(
-        o.getId(),
-        o.getRetailer().getId(),
-        o.getRetailer().getFullName(),
-        o.getTotalAmount(),
-        o.getStatus(),
-        o.getDeliveryDate());
-  }
+//SalesOrderService.java
+private SalesOrderResponse toResponse(SalesOrder o) {
+   var lineDtos = o.getLines().stream()
+       .map(li -> new SalesOrderLineResponse(
+           li.getId(),
+           li.getBatchCode(),
+           li.getProductName(),
+           li.getQuantityKg(),
+           li.getPricePerKg(),
+           li.getLineTotal()
+       ))
+       .toList();
 
+   return new SalesOrderResponse(
+       o.getId(),
+       o.getRetailer().getId(),
+       o.getRetailer().getFullName(),
+       o.getTotalAmount(),
+       o.getStatus(),
+       o.getDeliveryDate(),
+       lineDtos
+   );
+}
+@Transactional(readOnly = true)
+public SalesOrderResponse getOne(Long id) {
+    var o = orders.findById(id).orElseThrow();
+    return toResponse(o);
+}
   private String classify(double q) {
     if (q <= 0.0) return "out-of-stock";
     if (q < 20.0) return "critical";

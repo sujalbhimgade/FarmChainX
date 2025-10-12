@@ -33,7 +33,7 @@ const CropShowcase = () => {
                 farmer: dto.farmName || '—',
                 image: dto.image_url || '../src/assets/wheat.jpg',
                 planting_date: dto.plantedDate || '—',
-                harvestDate: dto.harvestDate || '—',
+                harvest_date: dto.harvestDate || dto.harvestedDate || '—',
                 growth_stage: dto.currentStage || '—',
                 certification: dto.certification || '—',
                 quality_score: dto.quality ?? 0,
@@ -43,13 +43,44 @@ const CropShowcase = () => {
                 phone: dto.contactPhone || '—',
                 email: dto.contactEmail || '—',
                 batch_id: dto.batchCode || '—',
-                supply_chain: {
-                    farmer: { name: dto.farmName || '—', date: dto.plantedDate || '—', location: dto.contactAddress || '—', status: (dto.progress?.farmer ? 'completed' : 'pending') },
-                    distributor: { name: '—', date: '—', location: dto.currentHolder || '—', status: (dto.progress?.distributor ? 'completed' : 'pending') },
-                    retailer: { name: '—', date: '—', location: '—', status: (dto.progress?.retailer ? 'completed' : 'pending') },
-                    consumer: { date: '—', status: (dto.progress?.consumer ? 'completed' : 'pending') },
-                },
-                journey: dto.journey || [],
+                supply_chain: (() => {
+                    const stage = String(dto.currentStage || '').toUpperCase();
+                    const order = ['FARMER', 'DISTRIBUTOR', 'RETAILER', 'CONSUMER'];
+                    const idx = order.indexOf(stage);
+                    const statusFor = (s) => {
+                        const i = order.indexOf(s);
+                        if (idx === i) return 'current';
+                        if (idx > i) return 'completed';
+                        return 'pending';
+                    };
+                    const make = (name, date, location, status) => ({ name, date, location, status });
+
+                    return {
+                        farmer: make(
+                            dto.farmName || '—',
+                            dto.plantedDate || '—',
+                            dto.contactAddress || '—',
+                            statusFor('FARMER')
+                        ),
+                        distributor: make(
+                            dto.currentHolder || '—',
+                            dto.distributorDate || '—',
+                            dto.distributorLocation || '—',
+                            statusFor('DISTRIBUTOR')
+                        ),
+                        retailer: make(
+                            dto.retailerName || '—',
+                            dto.retailerDate || '—',
+                            dto.retailerLocation || '—',
+                            statusFor('RETAILER')
+                        ),
+                        consumer: {
+                            date: dto.consumerDate || '—',
+                            status: statusFor('CONSUMER')
+                        }
+                    };
+                })(),
+                stage: (dto.currentStage || '—').toUpperCase()
             };
             setCropData(mapped);
         } catch (e) {
@@ -65,7 +96,7 @@ const CropShowcase = () => {
             name: "Organic Tomatoes",
             variety: "Cherry Tomato - Roma Variety",
             farmer: "Green Valley Organic Farms",
-            image: "../src/assets/wheat.jpg",
+            image: "../src/assets/tomato.png",
             planting_date: "Mar 15, 2025",
             harvest_date: "Jul 20, 2025",
             growth_stage: "Mature",
@@ -155,7 +186,7 @@ const CropShowcase = () => {
                     <div className="crop-image-section">
                         <img src={cropData.image} alt={cropData.name} />
                         <div className="quality-badge">
-                            <span>{cropData.quality_score}</span>
+                            <span>A+</span>
                             <small>Quality Score</small>
                         </div>
                     </div>
@@ -185,7 +216,7 @@ const CropShowcase = () => {
                         <i className="fas fa-clock"></i>
                         <div>
                             <h4>Harvested</h4>
-                            <p>{cropData.harvestDate}</p>
+                            <p>{cropData?.harvest_date || '—'}</p>
                         </div>
                     </div>
                     <div className="stat-item">
@@ -214,20 +245,7 @@ const CropShowcase = () => {
                             <i className="fas fa-info-circle"></i>
                             Overview
                         </button>
-                        {/* <button
-                            className={activeTab === 'quality' ? 'active' : ''}
-                            onClick={() => setActiveTab('quality')}
-                        >
-                            <i className="fas fa-award"></i>
-                            Quality
-                        </button> */}
-                        {/* <button
-                            className={activeTab === 'environment' ? 'active' : ''}
-                            onClick={() => setActiveTab('environment')}
-                        >
-                            <i className="fas fa-globe"></i>
-                            Environment
-                        </button> */}
+                    
                     </div>
 
                     <div className="tab-content">
@@ -265,27 +283,27 @@ const CropShowcase = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="timeline-compact">
-                                    <div className="timeline-step">
-                                        <i className="fas fa-user-tie"></i>
-                                        <span>Farmer</span>
+                            
+                                {cropData?.supply_chain && (
+                                    <div className="timeline-compact">
+                                        {['farmer', 'distributor', 'retailer', 'consumer'].map((k, idx) => {
+                                            const s = cropData.supply_chain[k] || {};
+                                            const active = s.status === 'completed' || s.status === 'current';
+                                            const label = k.charAt(0).toUpperCase() + k.slice(1);
+                                            return (
+                                                <React.Fragment key={k}>
+                                                    <div className={`timeline-step ${active ? 'active' : ''}`}>
+                                                        <i />
+                                                        <span>{label}</span>
+                                                    </div>
+                                                    {idx < 3 && <div className="timeline-line" />}
+                                                </React.Fragment>
+                                            );
+                                        })}
                                     </div>
-                                    <div className="timeline-line"></div>  
-                                    <div className="timeline-step">
-                                        <i className="fas fa-truck"></i>
-                                        <span>Distributor</span>
-                                    </div>
-                                    <div className="timeline-line"></div>  
-                                    <div className="timeline-step">
-                                        <i className="fas fa-store"></i>
-                                        <span>Retailer</span>
-                                    </div>
-                                    <div className="timeline-line"></div>  
-                                    <div className="timeline-step active">
-                                        <i className="fas fa-shopping-cart"></i>
-                                        <span>Consumer</span>
-                                    </div>
-                                </div>
+                                )}
+
+
 
 
                             </div>

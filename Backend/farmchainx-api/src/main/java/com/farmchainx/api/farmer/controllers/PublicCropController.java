@@ -76,7 +76,9 @@ public class PublicCropController {
     dto.put("type", c.getType());
     dto.put("farmName", c.getFarmer() != null ? c.getFarmer().getFullName() : null);
     dto.put("batchCode", batchCode);
-    dto.put("plantedDate", c.getPlantedDate());                 // let Jackson serialize
+    dto.put("plantedDate", c.getPlantedDate());  
+    dto.put("harvestedDate", c.getHarvestDate());   
+    dto.put("harvestDate",  c.getHarvestDate());    
     dto.put("pestControl", c.getPesticides());
     dto.put("contactAddress", c.getFieldLocation());
     dto.put("contactPhone", c.getFarmer() != null ? c.getFarmer().getMobile() : null);

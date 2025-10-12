@@ -917,7 +917,6 @@ body {
 
 
 .action-buttons .btn::before {
-  content: attr(data-tooltip);
   position: absolute;
   bottom: calc(100% + 8px);
   left: 50%;
@@ -956,9 +955,10 @@ body {
 
 .action-buttons .btn:hover::before,
 .action-buttons .btn:hover::after {
-    content: '';
-    opacity: 0;
-    visibility: hidden;
+    content: none !important;
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
 }
 
 

@@ -36,4 +36,10 @@ public class SalesOrderController {
       @RequestBody @Valid SalesOrderStatusUpdateRequest req) {
     return ResponseEntity.ok(service.updateStatus(id, req));
   }
+
+  @GetMapping("/{id}")
+  public ResponseEntity<SalesOrderResponse> getOne(@PathVariable Long id) {
+   return ResponseEntity.ok(service.getOne(id));
+}
+
 }

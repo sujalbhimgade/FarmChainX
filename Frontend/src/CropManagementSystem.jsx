@@ -197,7 +197,7 @@ const CropManagementSystem = () => {
   });
 
   const [settingsData, setSettingsData] = useState({
-    farmName: 'Ujwal Farm',
+    
     location: 'Maharashtra, India',
     totalArea: '45 acres',
     email: 'farmer@farmchainx.com',
@@ -211,7 +211,6 @@ const CropManagementSystem = () => {
   });
   const [farmerProfile] = useState({
     name: 'Farmer',
-    farmName: 'Ujwal Farm',
     location: 'Maharashtra, India',
     totalArea: '45 acres',
     avatar: null

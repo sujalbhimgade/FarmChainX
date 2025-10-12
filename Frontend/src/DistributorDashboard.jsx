@@ -136,18 +136,41 @@ const DistributorDashboard = () => {
 
   const loadSalesOrders = async () => {
     try {
+      localStorage.removeItem('distributor_orders');
       const orders = await api.getSalesOrders();
-      setSalesOrders(orders || []);
+      setSalesOrders(
+        Array.isArray(orders)
+          ? orders.map(o => ({
+            ...o,
+            lines: o.lines ?? o.items ?? o.products ?? [],
+            items: o.lines ?? o.items ?? o.products ?? [],
+            products: o.lines ?? o.products ?? [],
+          }))
+          : []
+      );
     } catch (e) {
       console.error('Failed to load sales orders', e);
     }
   };
-
+  // Add this inside DistributorDashboard component, above useEffect
   const loadRetailers = async () => {
     try {
-      const list = await api.getPublicRetailers(); // instead of getMyRetailers()
-      setRetailers(Array.isArray(list) ? list : []);
-
+      const list = await api.getPublicRetailers();
+      setRetailers(
+        Array.isArray(list)
+          ? list.map(r => ({
+            id: r.id ?? r.userId ?? r.retailerUserId ?? String(r.email || r.phone || Math.random()),
+            name: r.name ?? r.companyName ?? r.fullName ?? 'Retailer',
+            contact: r.contact ?? r.contactName ?? r.name ?? '',
+            phone: r.phone ?? r.mobile ?? '',
+            email: r.email ?? '',
+            location: r.location ?? r.city ?? '-',
+            creditLimit: r.creditLimit ?? 0,
+            outstandingAmount: r.outstandingAmount ?? 0,
+            rating: r.rating ?? 0,
+          }))
+          : []
+      );
     } catch (e) {
       console.error('Failed to load retailers', e);
       setRetailers([]);
@@ -263,9 +286,25 @@ const DistributorDashboard = () => {
   };
 
   const handleShipOrder = async (order) => {
+    let lines = order?.lines || order?.items || order?.products || [];
+
+    if (!Array.isArray(lines) || lines.length === 0) {
+      if (api && typeof api.getSalesOrderById === 'function') {
+        const fresh = await api.getSalesOrderById(order.id);
+        lines = fresh?.lines || [];
+        if (!lines.length) {
+          alert('No order lines found to ship.');
+          return;
+        }
+        order = { ...order, ...fresh, items: lines, products: lines, lines };
+      } else {
+        alert('No order lines found to ship.');
+        return;
+      }
+    }
+
     console.log('🚀 handleShipOrder start:', { orderId: order?.id, status: order?.status, order });
 
-    // Guard: API instance must exist and expose methods
     if (!api || typeof api.createDistributorShipmentToRetailer !== 'function' || typeof api.updateSalesOrderStatus !== 'function') {
       alert('API not initialized. Fix import path for api.js');
       console.error('API not initialized or methods missing:', api);
@@ -275,27 +314,22 @@ const DistributorDashboard = () => {
     try {
       const invList = Array.isArray(inventory) ? inventory : [];
       const byBatch = new Map(invList.map(it => [String(it.batchId ?? it.batchCode ?? ''), it]));
-      console.log('📋 Inventory batches:', Array.from(byBatch.keys()));
 
-      // accept any backend shape
-      const lines = order?.lines || order?.products || order?.items || [];
       if (!Array.isArray(lines) || lines.length === 0) {
-        console.warn('⚠️ No order lines to ship for order', order?.id);
         alert('No order lines found to ship.');
         return;
       }
 
       for (const li of lines) {
-        const batchCode = String(li.batchCode ?? li.batchId ?? '').trim();
+        const batchCode = String(li.batchCode ?? li.batchId ?? li.batch ?? '').trim();
+        const quantityKg = Number(li.quantityKg ?? li.quantity ?? li.qty ?? 0);
+        const unitPrice = Number(li.pricePerKg ?? li.unitPrice ?? li.price ?? 0);
         const inv = byBatch.get(batchCode);
-        const cropId = Number(inv?.cropId ?? li?.cropId ?? 0);
-        const quantityKg = Number(li.quantityKg ?? li.quantity ?? 0);
-        const unitPrice = Number(li.pricePerKg ?? li.unitPrice ?? 0);
+        const cropId = Number(inv?.cropId ?? li?.cropId ?? li?.crop?.id ?? 0);
 
         if (!cropId) throw new Error(`Missing cropId for batch ${batchCode || '(blank)'}`);
         if (!quantityKg) throw new Error(`Missing quantity for batch ${batchCode || '(blank)'}`);
 
-        console.log('🏭 Creating shipment:', { batchCode, cropId, quantityKg, unitPrice });
         await api.createDistributorShipmentToRetailer({
           retailerUserId: Number(order.retailerUserId ?? order.retailerId),
           cropId,
@@ -306,13 +340,10 @@ const DistributorDashboard = () => {
           vehicle: null,
           expectedDelivery: order?.deliveryDate || null,
         });
-        console.log('✅ Shipment created for batch', batchCode);
       }
 
-      console.log('📝 Marking order SHIPPED:', order?.id);
-      await api.updateSalesOrderStatus(order.id, 'SHIPPED'); // PATCH /api/distributor/orders/{id}/status with body {status} [attached_file:1140]
+      await api.updateSalesOrderStatus(order.id, 'SHIPPED');
       await loadSalesOrders();
-      console.log('✅ Order marked SHIPPED and list refreshed:', order?.id);
       alert('Shipment created and order marked SHIPPED.');
     } catch (err) {
       console.error('❌ Ship order failed:', err);
@@ -321,6 +352,20 @@ const DistributorDashboard = () => {
   };
 
 
+
+  const normalizeOrder = (o) => ({
+    ...o,
+    lines:
+      o?.lines ||
+      o?.orderLines ||
+      o?.orderItems ||
+      o?.items ||
+      o?.products ||
+      [],
+    retailerUserId: o?.retailerUserId ?? o?.retailerId ?? o?.retailer?.id ?? null,
+  });
+
+ 
 
 
 
@@ -1614,37 +1659,21 @@ const DistributorDashboard = () => {
                               Delete
                             </button>
                            
-                            {order.status !== 'shipped' && order.status !== 'SHIPPED' && (
-                              <div onClick={(e) => e.stopPropagation()}>
-                                <button
-                                  id={`ship-btn-${order.id}`}
-                                  type="button"
-                                  className="btn btn-small btn-primary"
-                                  style={{ pointerEvents: 'auto', position: 'relative', zIndex: 2 }}
-                                  onMouseDown={(e) => e.stopPropagation()}
-                                  onKeyDown={(e) => e.stopPropagation()}
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    console.log('🟢 Ship clicked for order', order?.id);
-                                    handleShipOrder(order);
-                                  }}
-                                  disabled={
-                                    !(
-                                      (order?.lines && order.lines.length) ||
-                                      (order?.products && order.products.length) ||
-                                      (order?.items && order.items.length)
-                                    )
-                                  }
-                                  title={
-                                    ((order?.lines || []).length + (order?.products || []).length + (order?.items || []).length) === 0
-                                      ? 'No order lines'
-                                      : 'Ship to retailer'
-                                  }
-                                >
-                                  Ship
-                                </button>
-                              </div>
+                            {String(order.status).toUpperCase() !== 'SHIPPED' ? (
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleShipOrder(order);
+                                }}
+                              >
+                                <Truck size={14} /> Ship
+                              </button>
+                            ) : (
+                              <span className="status-badge">
+                                <Truck size={14} /> Shipped
+                              </span>
                             )}
 
                             {(order.products || order.lines || order.items || []).map((p, idx) => (
